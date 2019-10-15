@@ -11,7 +11,7 @@ import (
 
 	"github.com/cpmech/gosl/chk"
 	"github.com/cpmech/gosl/io"
-	"github.com/cpmech/gosl/mpi"
+	"github.com/sbromberger/gompi"
 )
 
 func setSlice(x []float64, rank, ncpus int) {
@@ -53,14 +53,14 @@ func main() {
 	if mpi.WorldRank() == 0 {
 		io.Pf("\n\n------------------ Test MPI 00 ------------------\n\n")
 	}
-	if mpi.WorldSize() != 8 {
-		io.Pf("this test needs 8 processors\n")
+	if mpi.WorldSize() < 4 {
+		io.Pf("this test needs 4 processors\n")
 		return
 	}
 
 	// subsets of processors
 	A := mpi.NewCommunicator([]int{0, 1, 2, 3})
-	B := mpi.NewCommunicator([]int{4, 5, 6, 7})
+	B := mpi.NewCommunicator([]int{0, 1, 2, 3})
 
 	// test structure
 	chk.Verbose = true
@@ -146,6 +146,17 @@ func main() {
 		} else {
 			res := A.RecvOneI(0)
 			chk.Int(tst, "A RecvOneI", res, 456)
+		}
+		// SendB & RecvB
+		s := "Hello"
+		if A.Rank() == 0 {
+			for k := 1; k <= 3; k++ {
+				A.SendB([]byte(s), k)
+			}
+		} else {
+			y := make([]byte, 5)
+			A.RecvB(y, 0)
+			chk.String(tst, string(y), s)
 		}
 
 	} else {
