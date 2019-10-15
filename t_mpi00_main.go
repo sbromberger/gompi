@@ -159,6 +159,17 @@ func main() {
 			chk.String(tst, string(y), s)
 		}
 
+		// SendOneString / RecvOneString
+		s = "Hello World!"
+		if A.Rank() == 0 {
+			for k := 1; k <= 3; k++ {
+				A.SendOneString(s, k)
+			}
+		} else {
+			y := A.RecvOneString(0)
+			chk.String(tst, y, s)
+		}
+
 	} else {
 
 		// BcastFromRootC

@@ -251,6 +251,21 @@ func (o *Communicator) RecvOne(fromID int) (val float64) {
 	return vals[0]
 }
 
+// SendOneString is a convenience function to send one string.
+func (o *Communicator) SendOneString(s string, toID int) {
+	l := len(s)
+	o.SendOneI(l, toID)
+	o.SendB([]byte(s), toID)
+}
+
+// RecvOneString is a convenience function to receive a string.
+func (o *Communicator) RecvOneString(fromID int) string {
+	l := o.RecvOneI(fromID)
+	b := make([]byte, l)
+	o.RecvB(b, fromID)
+	return string(b)
+}
+
 // SendOneI sends one value to processor toID (integer version)
 func (o *Communicator) SendOneI(val int, toID int) {
 	vals := []int{val}
