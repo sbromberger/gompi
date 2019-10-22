@@ -24,7 +24,10 @@ MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 */
 import "C"
 
-import "unsafe"
+import (
+	"fmt"
+	"unsafe"
+)
 
 // IsOn tells whether MPI is on or not
 //  NOTE: this returns true even after Stop
@@ -270,7 +273,8 @@ func (o *Communicator) RecvOneString(fromID int) string {
 func (o *Communicator) SendOneI(val int, toID int) {
 	vals := []int{val}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, 1, C.TyLong, C.int(toID), 10004, o.comm)
+	zzz := C.MPI_Send(buf, 1, C.TyLong, C.int(toID), 10004, o.comm)
+	fmt.Println("zzz = ", zzz)
 }
 
 // RecvOneI receives one value from processor fromId (integer version)
