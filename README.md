@@ -1,10 +1,11 @@
-# Gosl. mpi. Message Passing Interface for parallel computing
+GoMPI: Message Passing Interface for Parallel Computing
 
-[![GoDoc](https://godoc.org/github.com/cpmech/gosl/mpi?status.svg)](https://godoc.org/github.com/cpmech/gosl/mpi) 
+The `gompi` package is a lightweight wrapper to the [OpenMPI](https://www.open-mpi.org) C++ library
+designed to develop algorithms for parallel computing.
 
-More information is available in **[the documentation of this package](https://godoc.org/github.com/cpmech/gosl/mpi).**
+GoMPI is a fork of the [gosl MPI](https://github.com/cpmech/gosl/mpi) package with additional methods.
 
-The `mpi` package is a light wrapper to the [OpenMPI](https://www.open-mpi.org) C++ library designed
-to develop algorithms for parallel computing.
+## Installation
 
-This package allows parallel computations over the network.
+1) install [OpenMPI](https://www.open-mpi.org) for your system
+2) run `install.bash`

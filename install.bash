@@ -2,44 +2,44 @@
 
 set -e
 
-platform='unknown'
+platform='invalid'
 unamestr=`uname`
 if [[ "$unamestr" == 'Linux' ]]; then
-   platform='linux'
+   platform='valid'
 elif [[ "$unamestr" == 'MINGW32_NT-6.2' ]]; then
-   platform='windows'
+   platform='invalid'
 elif [[ "$unamestr" == 'MINGW64_NT-10.0' ]]; then
-   platform='windows'
+   platform='invalid'
 elif [[ "$unamestr" == 'Darwin' ]]; then
-   platform='darwin'
+   platform='valid'
 fi
 
 echo "platform = $platform"
 
 install_and_test(){
     HERE=`pwd`
-    PKG=$1
-    DOTEST=$2
-    HASGENBASH=$3
+    DOTEST=$1
+    HASGENBASH=$2
     echo
     echo
-    echo "=== compiling $PKG ============================================================="
+    echo "=== compiling $PKG ==="
     if [[ ! -z $HASGENBASH ]]; then
         bash xgenflagsfile.bash
     fi
     touch *.go
     go install
     if [ "$DOTEST" -eq 1 ]; then
-        go test
+        echo "=== testing $PKG ==="
+        mpirun -n 4 go test
     fi
-    cd $HERE
 }
 
-if [[ $platform != 'windows' ]]; then
-    install_and_test mpi 1 1
+if [[ $platform != 'invalid' ]]; then
+    install_and_test 1 1
 else
-    install_and_test mpi 0
+    echo "=== This package is limited to Linux, UNIX, and OSX and cannot be installed on Windows."
+    exit 1
 fi
 
 echo
-echo "=== SUCCESS! ============================================================"
+echo "=== SUCCESS! ==="

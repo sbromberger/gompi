@@ -14,7 +14,7 @@ elif [[ "$unamestr" == 'Darwin' ]]; then
    platform='darwin'
 fi
 
-echo "   platform = $platform"
+# echo "   platform = $platform"
 
 if [[ $platform == 'windows' ]]; then
     echo "MPI doesn't work on Windows at this time"
