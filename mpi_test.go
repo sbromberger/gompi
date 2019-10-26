@@ -5,6 +5,7 @@
 package mpi
 
 import (
+	"fmt"
 	"math"
 	"testing"
 )
@@ -170,43 +171,65 @@ func TestMPI(t *testing.T) {
 		} else {
 			y := make([]int, 4)
 			A.RecvI(y, 0)
-			chkArraysEqualI(t, y, []int{123,123,123,123})
+			chkArraysEqualI(t, y, []int{123, 123, 123, 123})
 		}
 	})
 
+	A.Barrier()
+	// SendOneI/RecvOneI
+	t.Run("SendOneI/RecvOneI", func(t *testing.T) {
+		if A.Rank() == 0 {
+			for k := 1; k <= 3; k++ {
+				A.SendOneI(k*111, k)
+			}
+		} else {
+			res := A.RecvOneI(0)
+			exp := 111 * A.Rank()
+			if res != exp {
+				t.Errorf("received %d, expected %d", res, exp)
+			}
+		}
+	})
+
+	A.Barrier()
+	// SendB / RecvB
+	t.Run("SendB/RecvB", func(t *testing.T) {
+		if A.Rank() == 0 {
+			for k := 1; k <= 3; k++ {
+				s := fmt.Sprintf("Hello Rank %d!", k)
+				A.SendB([]byte(s), k)
+			}
+		} else {
+			res := make([]byte, 13)
+			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
+			A.RecvB(res, 0)
+			if string(res) != exp {
+				t.Errorf("received %s, expected %s", res, exp)
+			}
+		}
+	})
+
+	A.Barrier()
+
+	// SendOneString / RecvOneString
+	t.Run("SendOneString / RecvOneString", func(t *testing.T) {
+		if A.Rank() == 0 {
+			for k := 1; k <= 3; k++ {
+				s := fmt.Sprintf("Hello Rank %d!", k)
+				A.SendOneString(s, k)
+			}
+		} else {
+			res := A.RecvOneString(0)
+			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
+			if res != exp {
+				t.Errorf("received %s, expected %s", res, exp)
+			}
+		}
+	})
+
+	A.Barrier()
 }
 
-// 		// SendOneI & RecvOneI
-// 		if A.Rank() == 0 {
-// 			for k := 1; k <= 3; k++ {
-// 				A.SendOneI(456, k)
-// 			}
-// 		} else {
-// 			res := A.RecvOneI(0)
-// 			chk.Int(tst, "A RecvOneI", res, 456)
-// 		}
-// 		// SendB & RecvB
-// 		s := "Hello"
-// 		if A.Rank() == 0 {
-// 			for k := 1; k <= 3; k++ {
-// 				A.SendB([]byte(s), k)
-// 			}
-// 		} else {
-// 			y := make([]byte, 5)
-// 			A.RecvB(y, 0)
-// 			chk.String(tst, string(y), s)
-// 		}
-//
-// 		// SendOneString / RecvOneString
-// 		s = "Hello World!"
-// 		if A.Rank() == 0 {
-// 			for k := 1; k <= 3; k++ {
-// 				A.SendOneString(s, k)
-// 			}
-// 		} else {
-// 			y := A.RecvOneString(0)
-// 			chk.String(tst, y, s)
-// 		}
 //
 // 	} else {
 //
