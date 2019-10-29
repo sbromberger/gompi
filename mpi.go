@@ -1,7 +1,6 @@
 // Copyright 2016 The Gosl Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // +build !windows
 
 // Package mpi wraps the Message Passing Interface for parallel computations
@@ -25,9 +24,31 @@ MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 import "C"
 
 import (
-	"fmt"
 	"unsafe"
 )
+
+type Status struct {
+	MPI_Status C.MPI_Status
+}
+
+func (o *Communicator) Probe(source int, tag int) Status {
+	var s Status
+	C.MPI_Probe(C.int(source), C.int(tag), o.comm, &(s.MPI_Status))
+	return s
+}
+
+func (s Status) GetCountI() int {
+	var n C.int
+	C.MPI_Get_count(&s.MPI_Status, C.TyLong, &n)
+	return int(n)
+}
+
+func (s Status) GetCount() int {
+	var n C.int
+	C.MPI_Get_count(&s.MPI_Status, C.MPI_BYTE, &n)
+	// fmt.Println("received ", n, "bytes via probe")
+	return int(n)
+}
 
 // IsOn tells whether MPI is on or not
 //  NOTE: this returns true even after Stop
@@ -192,95 +213,94 @@ func (o *Communicator) AllReduceMaxI(dest, orig []int) {
 }
 
 // Send sends values to processor toID
-func (o *Communicator) Send(vals []float64, toID int) {
+func (o *Communicator) Send(vals []float64, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.TyDouble, C.int(toID), 10000, o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), C.TyDouble, C.int(toID), C.int(tag), o.comm)
 }
 
 // Recv receives values from processor fromId
-func (o *Communicator) Recv(vals []float64, fromID int) {
+func (o *Communicator) Recv(vals []float64, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.TyDouble, C.int(fromID), 10000, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), C.TyDouble, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
+// func (o *Communicator) RecvWithStatus(fromID int)
+
 // SendC sends values to processor toID (complex version)
-func (o *Communicator) SendC(vals []complex128, toID int) {
+func (o *Communicator) SendC(vals []complex128, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.TyComplex, C.int(toID), 10001, o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), C.TyComplex, C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvC receives values from processor fromId (complex version)
-func (o *Communicator) RecvC(vals []complex128, fromID int) {
+func (o *Communicator) RecvC(vals []complex128, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.TyComplex, C.int(fromID), 10001, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), C.TyComplex, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendI sends values to processor toID (integer version)
-func (o *Communicator) SendI(vals []int, toID int) {
+func (o *Communicator) SendI(vals []int, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.TyLong, C.int(toID), 10002, o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), C.TyLong, C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvI receives values from processor fromId (integer version)
-func (o *Communicator) RecvI(vals []int, fromID int) {
+func (o *Communicator) RecvI(vals []int, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.TyLong, C.int(fromID), 10002, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), C.TyLong, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendB sends values to processor toID (byte version)
-func (o *Communicator) SendB(vals []byte, toID int) {
+func (o *Communicator) SendB(vals []byte, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.TyByte, C.int(toID), 10003, o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), C.TyByte, C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvB receives values from processor fromId (byte version)
-func (o *Communicator) RecvB(vals []byte, fromID int) {
+func (o *Communicator) RecvB(vals []byte, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.TyByte, C.int(fromID), 10003, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), C.TyByte, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendOne sends one value to processor toID
-func (o *Communicator) SendOne(val float64, toID int) {
+func (o *Communicator) SendOne(val float64, toID int, tag int) {
 	vals := []float64{val}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, 1, C.TyDouble, C.int(toID), 10003, o.comm)
+	C.MPI_Send(buf, 1, C.TyDouble, C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvOne receives one value from processor fromId
-func (o *Communicator) RecvOne(fromID int) (val float64) {
+func (o *Communicator) RecvOne(fromID, tag int) (val float64) {
 	vals := []float64{0}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, 1, C.TyDouble, C.int(fromID), 10003, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, 1, C.TyDouble, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 	return vals[0]
 }
 
 // SendOneString is a convenience function to send one string.
-func (o *Communicator) SendOneString(s string, toID int) {
-	l := len(s)
-	o.SendOneI(l, toID)
-	o.SendB([]byte(s), toID)
+func (o *Communicator) SendOneString(s string, toID, tag int) {
+	o.SendB([]byte(s), toID, tag)
 }
 
 // RecvOneString is a convenience function to receive a string.
-func (o *Communicator) RecvOneString(fromID int) string {
-	l := o.RecvOneI(fromID)
+func (o *Communicator) RecvOneString(fromID, tag int) string {
+	l := o.Probe(fromID, tag).GetCount()
 	b := make([]byte, l)
-	o.RecvB(b, fromID)
+	o.RecvB(b, fromID, tag)
 	return string(b)
 }
 
 // SendOneI sends one value to processor toID (integer version)
-func (o *Communicator) SendOneI(val int, toID int) {
+func (o *Communicator) SendOneI(val int, toID, tag int) {
 	vals := []int{val}
 	buf := unsafe.Pointer(&vals[0])
-	zzz := C.MPI_Send(buf, 1, C.TyLong, C.int(toID), 10004, o.comm)
-	fmt.Println("zzz = ", zzz)
+	C.MPI_Send(buf, 1, C.TyLong, C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvOneI receives one value from processor fromId (integer version)
-func (o *Communicator) RecvOneI(fromID int) (val int) {
+func (o *Communicator) RecvOneI(fromID, tag int) (val int) {
 	vals := []int{0}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, 1, C.TyLong, C.int(fromID), 10004, o.comm, C.StIgnore)
+	C.MPI_Recv(buf, 1, C.TyLong, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 	return vals[0]
 }

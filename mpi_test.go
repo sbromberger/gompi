@@ -152,11 +152,11 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			s := []float64{123, 123, 123, 123}
 			for k := 1; k <= 3; k++ {
-				A.Send(s, k)
+				A.Send(s, k, 1)
 			}
 		} else {
 			y := make([]float64, 4)
-			A.Recv(y, 0)
+			A.Recv(y, 0, 1)
 			chkArraysEqual(t, y, []float64{123, 123, 123, 123})
 		}
 	})
@@ -166,11 +166,11 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			s := []int{123, 123, 123, 123}
 			for k := 1; k <= 3; k++ {
-				A.SendI(s, k)
+				A.SendI(s, k, 2)
 			}
 		} else {
 			y := make([]int, 4)
-			A.RecvI(y, 0)
+			A.RecvI(y, 0, 2)
 			chkArraysEqualI(t, y, []int{123, 123, 123, 123})
 		}
 	})
@@ -180,10 +180,10 @@ func TestMPI(t *testing.T) {
 	t.Run("SendOneI/RecvOneI", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
-				A.SendOneI(k*111, k)
+				A.SendOneI(k*111, k, 3)
 			}
 		} else {
-			res := A.RecvOneI(0)
+			res := A.RecvOneI(0, 3)
 			exp := 111 * A.Rank()
 			if res != exp {
 				t.Errorf("received %d, expected %d", res, exp)
@@ -197,12 +197,12 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
-				A.SendB([]byte(s), k)
+				A.SendB([]byte(s), k, 4)
 			}
 		} else {
 			res := make([]byte, 13)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
-			A.RecvB(res, 0)
+			A.RecvB(res, 0, 4)
 			if string(res) != exp {
 				t.Errorf("received %s, expected %s", res, exp)
 			}
@@ -216,10 +216,10 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
-				A.SendOneString(s, k)
+				A.SendOneString(s, k, 5)
 			}
 		} else {
-			res := A.RecvOneString(0)
+			res := A.RecvOneString(0, 5)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
 			if res != exp {
 				t.Errorf("received %s, expected %s", res, exp)
@@ -228,6 +228,23 @@ func TestMPI(t *testing.T) {
 	})
 
 	A.Barrier()
+
+	// Probe
+	t.Run("Probe", func(t *testing.T) {
+		if A.Rank() == 0 {
+			vals := []int{1, 4, 9}
+			for k := 1; k <= 3; k++ {
+				A.SendI(vals, k, 6)
+			}
+		} else {
+			s := A.Probe(0, 6)
+			n := s.GetCountI()
+			if n != 3 {
+				t.Errorf("received %d, expected 3", n)
+			}
+			_ = s.GetCount()
+		}
+	})
 }
 
 //

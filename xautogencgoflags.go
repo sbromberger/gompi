@@ -10,7 +10,7 @@
 package mpi
 
 /*
-#cgo CFLAGS: -I/usr/lib/arm-linux-gnueabihf/openmpi/include/openmpi -I/usr/lib/arm-linux-gnueabihf/openmpi/include -pthread
-#cgo LDFLAGS: -pthread -L/usr/lib/arm-linux-gnueabihf/openmpi/lib -lmpi
+#cgo CFLAGS: -I/usr/lib/aarch64-linux-gnu/openmpi/include/openmpi -I/usr/lib/aarch64-linux-gnu/openmpi/include -pthread
+#cgo LDFLAGS: -pthread -L/usr/lib/aarch64-linux-gnu/openmpi/lib -lmpi
 */
 import "C"
