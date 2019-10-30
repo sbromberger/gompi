@@ -238,7 +238,7 @@ func TestMPI(t *testing.T) {
 			}
 		} else {
 			s := A.Probe(0, 6)
-			n := s.GetCountI()
+			n := s.GetCountT(Long)
 			if n != 3 {
 				t.Errorf("received %d, expected 3", n)
 			}
