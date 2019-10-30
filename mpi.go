@@ -17,10 +17,6 @@ MPI_Comm     World     = MPI_COMM_WORLD;
 MPI_Op       OpSum     = MPI_SUM;
 MPI_Op       OpMin     = MPI_MIN;
 MPI_Op       OpMax     = MPI_MAX;
-MPI_Datatype MPILong    = MPI_LONG;
-MPI_Datatype MPIDouble  = MPI_DOUBLE;
-MPI_Datatype MPIComplex = MPI_DOUBLE_COMPLEX;
-MPI_Datatype MPIByte    = MPI_BYTE;
 MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 
 #define DOUBLE_COMPLEX double complex
@@ -28,16 +24,22 @@ MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 import "C"
 
 import (
-	"fmt"
 	"unsafe"
 )
 
-type mpiType C.MPI_Datatype
+type DataType uint8
 
-var Byte = mpiType(C.MPIByte)
-var Long = mpiType(C.MPILong)
-var Double = mpiType(C.MPIDouble)
-var Complex = mpiType(C.MPIComplex)
+const (
+	// These constants index MPI datatypes in the following map.
+	Byte DataType = iota
+	Unsigned
+	Int
+	Long
+	Double
+	Complex
+)
+
+var dataTypes = [...]C.MPI_Datatype{C.MPI_BYTE, C.MPI_UNSIGNED, C.MPI_INT, C.MPI_LONG, C.MPI_DOUBLE, C.MPI_DOUBLE_COMPLEX}
 
 // Status envelops an MPI_Status structure.
 type Status struct {
@@ -52,10 +54,9 @@ func (o Communicator) Probe(source int, tag int) Status {
 }
 
 // GetCountI returns a count of 64-bit integers from a status object.
-func (s Status) GetCount(t mpiType) int {
+func (s Status) GetCount(t DataType) int {
 	var n C.int
-	fmt.Printf("Type of C.MPILong = %T\n", C.MPILong)
-	C.MPI_Get_count(&s.mpiStatus, t, &n)
+	C.MPI_Get_count(&s.mpiStatus, dataTypes[t], &n)
 	return int(n)
 }
 
@@ -155,13 +156,13 @@ func (o Communicator) Barrier() {
 // BcastFromRoot broadcasts slice from root (Rank == 0) to all other processors
 func (o Communicator) BcastFromRoot(x []float64) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), C.MPIDouble, 0, o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Double], 0, o.comm)
 }
 
 // BcastFromRootC broadcasts slice from root (Rank == 0) to all other processors (complex version)
 func (o Communicator) BcastFromRootC(x []complex128) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), C.MPIComplex, 0, o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Complex], 0, o.comm)
 }
 
 // ReduceSum sums all values in 'orig' to 'dest' in root (Rank == 0) processor
@@ -169,7 +170,7 @@ func (o Communicator) BcastFromRootC(x []complex128) {
 func (o Communicator) ReduceSum(dest, orig []float64) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIDouble, C.OpSum, 0, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpSum, 0, o.comm)
 }
 
 // ReduceSumC sums all values in 'orig' to 'dest' in root (Rank == 0) processor (complex version)
@@ -177,7 +178,7 @@ func (o Communicator) ReduceSum(dest, orig []float64) {
 func (o Communicator) ReduceSumC(dest, orig []complex128) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIComplex, C.OpSum, 0, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Complex], C.OpSum, 0, o.comm)
 }
 
 // AllReduceSum combines all values from orig into dest summing values
@@ -185,7 +186,7 @@ func (o Communicator) ReduceSumC(dest, orig []complex128) {
 func (o Communicator) AllReduceSum(dest, orig []float64) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIDouble, C.OpSum, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpSum, o.comm)
 }
 
 // AllReduceSumC combines all values from orig into dest summing values (complex version)
@@ -193,7 +194,7 @@ func (o Communicator) AllReduceSum(dest, orig []float64) {
 func (o Communicator) AllReduceSumC(dest, orig []complex128) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIComplex, C.OpSum, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Complex], C.OpSum, o.comm)
 }
 
 // AllReduceMin combines all values from orig into dest picking minimum values
@@ -201,7 +202,7 @@ func (o Communicator) AllReduceSumC(dest, orig []complex128) {
 func (o Communicator) AllReduceMin(dest, orig []float64) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIDouble, C.OpMin, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpMin, o.comm)
 }
 
 // AllReduceMax combines all values from orig into dest picking minimum values
@@ -209,7 +210,7 @@ func (o Communicator) AllReduceMin(dest, orig []float64) {
 func (o Communicator) AllReduceMax(dest, orig []float64) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPIDouble, C.OpMax, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpMax, o.comm)
 }
 
 // AllReduceMinI combines all values from orig into dest picking minimum values (integer version)
@@ -217,7 +218,7 @@ func (o Communicator) AllReduceMax(dest, orig []float64) {
 func (o Communicator) AllReduceMinI(dest, orig []int) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPILong, C.OpMin, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Long], C.OpMin, o.comm)
 }
 
 // AllReduceMaxI combines all values from orig into dest picking minimum values (integer version)
@@ -225,19 +226,19 @@ func (o Communicator) AllReduceMinI(dest, orig []int) {
 func (o Communicator) AllReduceMaxI(dest, orig []int) {
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), C.MPILong, C.OpMax, o.comm)
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Long], C.OpMax, o.comm)
 }
 
 // Send sends values to processor toID
 func (o Communicator) Send(vals []float64, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.MPIDouble, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Double], C.int(toID), C.int(tag), o.comm)
 }
 
 // Recv receives values from processor fromId
 func (o Communicator) Recv(vals []float64, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.MPIDouble, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Double], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // func (o Communicator) RecvWithStatus(fromID int)
@@ -245,51 +246,51 @@ func (o Communicator) Recv(vals []float64, fromID int, tag int) {
 // SendC sends values to processor toID (complex version)
 func (o Communicator) SendC(vals []complex128, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.MPIComplex, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Complex], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvC receives values from processor fromId (complex version)
 func (o Communicator) RecvC(vals []complex128, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.MPIComplex, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Complex], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendI sends values to processor toID (integer version)
 func (o Communicator) SendI(vals []int, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.MPILong, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Long], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvI receives values from processor fromId (integer version)
 func (o Communicator) RecvI(vals []int, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.MPILong, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Long], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendB sends values to processor toID (byte version)
 func (o Communicator) SendB(vals []byte, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, C.int(len(vals)), C.MPIByte, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Byte], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvB receives values from processor fromId (byte version)
 func (o Communicator) RecvB(vals []byte, fromID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, C.int(len(vals)), C.MPIByte, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Byte], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 }
 
 // SendOne sends one value to processor toID
 func (o Communicator) SendOne(val float64, toID int, tag int) {
 	vals := []float64{val}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, 1, C.MPIDouble, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, 1, dataTypes[Double], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvOne receives one value from processor fromId
 func (o Communicator) RecvOne(fromID, tag int) (val float64) {
 	vals := []float64{0}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, 1, C.MPIDouble, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, 1, dataTypes[Double], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 	return vals[0]
 }
 
@@ -311,13 +312,13 @@ func (o Communicator) RecvOneString(fromID, tag int) string {
 func (o Communicator) SendOneI(val int, toID, tag int) {
 	vals := []int{val}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Send(buf, 1, C.MPILong, C.int(toID), C.int(tag), o.comm)
+	C.MPI_Send(buf, 1, dataTypes[Long], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvOneI receives one value from processor fromId (integer version)
 func (o Communicator) RecvOneI(fromID, tag int) (val int) {
 	vals := []int{0}
 	buf := unsafe.Pointer(&vals[0])
-	C.MPI_Recv(buf, 1, C.MPILong, C.int(fromID), C.int(tag), o.comm, C.StIgnore)
+	C.MPI_Recv(buf, 1, dataTypes[Long], C.int(fromID), C.int(tag), o.comm, C.StIgnore)
 	return vals[0]
 }
