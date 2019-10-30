@@ -300,7 +300,7 @@ func (o Communicator) SendOneString(s string, toID, tag int) {
 
 // RecvOneString is a convenience function to receive a string.
 func (o Communicator) RecvOneString(fromID, tag int) string {
-	l := o.Probe(fromID, tag).GetCount()
+	l := o.Probe(fromID, tag).GetCount(Byte)
 	b := make([]byte, l)
 	o.RecvB(b, fromID, tag)
 	return string(b)
