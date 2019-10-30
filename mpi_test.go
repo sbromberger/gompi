@@ -1,4 +1,3 @@
-// Copyright 2016 The Gosl Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -12,7 +11,7 @@ import (
 
 const tol = 1e-17
 
-func setSlice(x []float64, rank int, offset float64) {
+func setSliceFloat64(x []float64, rank int, offset float64) {
 	for i := 0; i < len(x); i++ {
 		if i == rank {
 			x[i] = float64(rank+1) + offset
@@ -20,13 +19,9 @@ func setSlice(x []float64, rank int, offset float64) {
 			x[i] = -1
 		}
 	}
-	// start, endp1 := (rank*len(x))/ncpus, ((rank+1)*len(x))/ncpus
-	// for i := start; i < endp1; i++ {
-	// 	x[i] = float64(1 + rank)
-	// }
 }
 
-func setSliceC(x []complex128, rank, ncpus int) {
+func setSliceComplex128(x []complex128, rank, ncpus int) {
 	for i := 0; i < len(x); i++ {
 		x[i] = 0
 	}
@@ -36,17 +31,17 @@ func setSliceC(x []complex128, rank, ncpus int) {
 	}
 }
 
-func setSliceI(x []int, rank, ncpus int) {
+func setSliceInt64(x []int64, rank, ncpus int) {
 	for i := 0; i < len(x); i++ {
 		x[i] = -1
 	}
 	start, endp1 := (rank*len(x))/ncpus, ((rank+1)*len(x))/ncpus
 	for i := start; i < endp1; i++ {
-		x[i] = 1 + rank
+		x[i] = 1 + int64(rank)
 	}
 }
 
-func chkArraysEqual(t *testing.T, a, b []float64) {
+func chkArraysEqualFloat64(t *testing.T, a, b []float64) {
 	if len(a) != len(b) {
 		t.Errorf("arrays have different lengths (%d, %d)", len(a), len(b))
 		return
@@ -60,7 +55,7 @@ func chkArraysEqual(t *testing.T, a, b []float64) {
 	return
 }
 
-func chkArraysEqualI(t *testing.T, a, b []int) {
+func chkArraysEqualInt64(t *testing.T, a, b []int64) {
 	if len(a) != len(b) {
 		t.Errorf("arrays have different lengths (%d, %d)", len(a), len(b))
 		return
@@ -85,93 +80,93 @@ func TestMPI(t *testing.T) {
 	A := NewCommunicator([]int{0, 1, 2, 3})
 	// B := NewCommunicator([]int{0, 1, 2, 3})
 
-	// BcastFromRoot
-	t.Run("BcastFromRoot", func(t *testing.T) {
+	// BcastDouble
+	t.Run("BcastFloat64s", func(t *testing.T) {
+		root := 3
 		x := make([]float64, 4)
-		if A.Rank() == 0 {
+		if A.Rank() == root {
 			for i := 0; i < len(x); i++ {
 				x[i] = float64(1 + i)
 			}
 		}
-		A.BcastFromRoot(x)
-		chkArraysEqual(t, x, []float64{1, 2, 3, 4})
+		A.BcastFloat64s(x, root)
+		chkArraysEqualFloat64(t, x, []float64{1, 2, 3, 4})
 	})
 
 	A.Barrier()
-	// ReduceSum
-	t.Run("ReduceSum", func(t *testing.T) {
+	// ReduceSumDouble
+	t.Run("ReduceSumFloat64s", func(t *testing.T) {
+		root := 3
 		x := make([]float64, 4)
-		setSlice(x, int(A.Rank()), 0)
+		setSliceFloat64(x, int(A.Rank()), 0)
 		// fmt.Println("x at rank", A.Rank(), "starts as ", x)
 		res := make([]float64, len(x))
-		A.ReduceSum(res, x)
+		A.ReduceSumFloat64s(res, x, root)
 		// fmt.Println("rank", A.Rank(), "reducesum res = ", res)
 		// fmt.Println("rank", A.Rank(), "reducesum x = ", x)
-		if A.Rank() == 0 {
-			chkArraysEqual(t, res, []float64{-2, -1, 0, 1})
+		if A.Rank() == root {
+			chkArraysEqualFloat64(t, res, []float64{-2, -1, 0, 1})
 		} else {
-			chkArraysEqual(t, res, []float64{0, 0, 0, 0})
+			chkArraysEqualFloat64(t, res, []float64{0, 0, 0, 0})
 		}
 	})
 	A.Barrier()
 
 	// AllReduceSum
-	t.Run("AllReduceSum", func(t *testing.T) {
+	t.Run("AllReduceSumFloat64s", func(t *testing.T) {
 		x := make([]float64, 4)
 		res := make([]float64, 4)
-		setSlice(x, int(A.Rank()), 0)
-		A.AllReduceSum(res, x)
-		chkArraysEqual(t, res, []float64{-2, -1, 0, 1})
+		setSliceFloat64(x, int(A.Rank()), 0)
+		A.AllReduceSumFloat64s(res, x)
+		chkArraysEqualFloat64(t, res, []float64{-2, -1, 0, 1})
 	})
 	A.Barrier()
 
 	// AllReduceMin
-	t.Run("AllReduceMin", func(t *testing.T) {
+	t.Run("AllReduceMinFloat64s", func(t *testing.T) {
 		x := make([]float64, 4)
-		setSlice(x, int(A.Rank()), -3.5)
+		setSliceFloat64(x, int(A.Rank()), -3.5)
 		res := make([]float64, len(x))
-		A.AllReduceMin(res, x)
+		A.AllReduceMinFloat64s(res, x)
 		// fmt.Println("allreducemin: rank", A.Rank(), "res = ", res)
 		// fmt.Println("allreduceminL rank", A.Rank(), "  x = ", x)
-		chkArraysEqual(t, res, []float64{-2.5, -1.5, -1, -1})
+		chkArraysEqualFloat64(t, res, []float64{-2.5, -1.5, -1, -1})
 	})
 	A.Barrier()
 
 	// AllReduceMax
-	t.Run("AllReduceMax", func(t *testing.T) {
+	t.Run("AllReduceMaxFloat64s", func(t *testing.T) {
 		x := make([]float64, 4)
-		setSlice(x, int(A.Rank()), 3.5)
+		setSliceFloat64(x, int(A.Rank()), 3.5)
 		res := make([]float64, len(x))
-		A.AllReduceMax(res, x)
-		chkArraysEqual(t, res, []float64{4.5, 5.5, 6.5, 7.5})
+		A.AllReduceMaxFloat64s(res, x)
+		chkArraysEqualFloat64(t, res, []float64{4.5, 5.5, 6.5, 7.5})
 	})
 	A.Barrier()
 
 	// Send & Recv
-	t.Run("Send/Recv", func(t *testing.T) {
+	t.Run("SendFloat64s/RecvFloat64s", func(t *testing.T) {
 		if A.Rank() == 0 {
 			s := []float64{123, 123, 123, 123}
 			for k := 1; k <= 3; k++ {
-				A.Send(s, k, 1)
+				A.SendFloat64s(s, k, 1)
 			}
 		} else {
-			y := make([]float64, 4)
-			A.Recv(y, 0, 1)
-			chkArraysEqual(t, y, []float64{123, 123, 123, 123})
+			y := A.RecvFloat64s(0, 1)
+			chkArraysEqualFloat64(t, y, []float64{123, 123, 123, 123})
 		}
 	})
 	A.Barrier()
 
-	t.Run("SendI/RecvI", func(t *testing.T) {
+	t.Run("SendInt64s/RecvInt64s", func(t *testing.T) {
 		if A.Rank() == 0 {
-			s := []int{123, 123, 123, 123}
+			s := []int64{123, 123, 123, 123}
 			for k := 1; k <= 3; k++ {
-				A.SendI(s, k, 2)
+				A.SendInt64s(s, k, 2)
 			}
 		} else {
-			y := make([]int, 4)
-			A.RecvI(y, 0, 2)
-			chkArraysEqualI(t, y, []int{123, 123, 123, 123})
+			y := A.RecvInt64s(0, 2)
+			chkArraysEqualInt64(t, y, []int64{123, 123, 123, 123})
 		}
 	})
 
@@ -180,11 +175,11 @@ func TestMPI(t *testing.T) {
 	t.Run("SendOneI/RecvOneI", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
-				A.SendOneI(k*111, k, 3)
+				A.SendInt64(int64(k*111), k, 3)
 			}
 		} else {
-			res := A.RecvOneI(0, 3)
-			exp := 111 * A.Rank()
+			res := A.RecvInt64(0, 3)
+			exp := int64(111 * A.Rank())
 			if res != exp {
 				t.Errorf("received %d, expected %d", res, exp)
 			}
@@ -197,12 +192,12 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
-				A.SendB([]byte(s), k, 4)
+				A.SendBytes([]byte(s), k, 4)
 			}
 		} else {
 			res := make([]byte, 13)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
-			A.RecvB(res, 0, 4)
+			A.RecvPreallocBytes(res, 0, 4)
 			if string(res) != exp {
 				t.Errorf("received %s, expected %s", res, exp)
 			}
@@ -216,10 +211,10 @@ func TestMPI(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
-				A.SendOneString(s, k, 5)
+				A.SendString(s, k, 5)
 			}
 		} else {
-			res := A.RecvOneString(0, 5)
+			res := A.RecvString(0, 5)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
 			if res != exp {
 				t.Errorf("received %s, expected %s", res, exp)
@@ -231,18 +226,22 @@ func TestMPI(t *testing.T) {
 
 	// Probe
 	t.Run("Probe", func(t *testing.T) {
-		if A.Rank() == 0 {
-			vals := []int{1, 4, 9}
-			for k := 1; k <= 3; k++ {
-				A.SendI(vals, k, 6)
+		if A.Rank() == 3 {
+			vals := []int64{1, 4, 9}
+			for k := 0; k < 3; k++ {
+				A.SendInt64s(vals, k, 6)
 			}
 		} else {
-			s := A.Probe(0, 6)
-			n := s.GetCountI()
-			if n != 3 {
-				t.Errorf("received %d, expected 3", n)
+			s := A.Probe(3, 6)
+			src := s.GetSource()
+			if src != 3 {
+				t.Errorf("GetSource: received %d, expected 3", src)
 			}
-			_ = s.GetCount()
+			n := s.GetCount(Long)
+			if n != 3 {
+				t.Errorf("GetCount: received %d, expected 3", n)
+			}
+			// _ = s.GetCount()
 		}
 	})
 }
