@@ -6,6 +6,7 @@ package mpi
 import (
 	"fmt"
 	"math"
+	"os"
 	"testing"
 )
 
@@ -52,7 +53,6 @@ func chkArraysEqualFloat64(t *testing.T, a, b []float64) {
 			return
 		}
 	}
-	return
 }
 
 func chkArraysEqualInt64(t *testing.T, a, b []int64) {
@@ -66,7 +66,6 @@ func chkArraysEqualInt64(t *testing.T, a, b []int64) {
 			return
 		}
 	}
-	return
 }
 
 func TestMPI(t *testing.T) {
@@ -78,6 +77,9 @@ func TestMPI(t *testing.T) {
 
 	// subsets of processors
 	A := NewCommunicator([]int{0, 1, 2, 3})
+	if A.Rank() != 0 {
+		os.Stdout, _ = os.Open(os.DevNull)
+	}
 	// B := NewCommunicator([]int{0, 1, 2, 3})
 
 	// BcastDouble
@@ -172,7 +174,7 @@ func TestMPI(t *testing.T) {
 
 	A.Barrier()
 	// SendOneI/RecvOneI
-	t.Run("SendOneI/RecvOneI", func(t *testing.T) {
+	t.Run("SendInt64/RecvInt64", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				A.SendInt64(int64(k*111), k, 3)
@@ -188,7 +190,7 @@ func TestMPI(t *testing.T) {
 
 	A.Barrier()
 	// SendB / RecvB
-	t.Run("SendB/RecvB", func(t *testing.T) {
+	t.Run("SendBytes/RecvBytes", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
@@ -207,7 +209,7 @@ func TestMPI(t *testing.T) {
 	A.Barrier()
 
 	// SendOneString / RecvOneString
-	t.Run("SendOneString / RecvOneString", func(t *testing.T) {
+	t.Run("SendString/RecvString", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
 				s := fmt.Sprintf("Hello Rank %d!", k)
@@ -241,7 +243,6 @@ func TestMPI(t *testing.T) {
 			if n != 3 {
 				t.Errorf("GetCount: received %d, expected 3", n)
 			}
-			// _ = s.GetCount()
 		}
 	})
 }
