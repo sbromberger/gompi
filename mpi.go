@@ -6,6 +6,8 @@
 // license that can be found in the LICENSE file.
 
 // +build !windows
+//go:generate stringer -type=DataType
+//go:generate stringer -type=Op
 
 // Package mpi wraps the Message Passing Interface for parallel computations
 package mpi
@@ -14,9 +16,6 @@ package mpi
 #include "mpi.h"
 
 MPI_Comm     World     = MPI_COMM_WORLD;
-MPI_Op       OpSum     = MPI_SUM;
-MPI_Op       OpMin     = MPI_MIN;
-MPI_Op       OpMax     = MPI_MAX;
 MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 
 #define DOUBLE_COMPLEX double complex
@@ -24,6 +23,7 @@ MPI_Status*  StIgnore  = MPI_STATUS_IGNORE;
 import "C"
 
 import (
+	"fmt"
 	"unsafe"
 )
 
@@ -36,6 +36,7 @@ const (
 	Int              // This maps to an int32 in go.
 	Ulong            // This maps to a uint64 in go.
 	Long             // This maps to an int64 in go. 32-bit systems should cast to int32.
+	Float            // This maps to a float32 in go
 	Double           // This maps to a float64 in go.
 	Complex          // This maps to a complex128 in go.
 )
@@ -46,9 +47,51 @@ var dataTypes = [...]C.MPI_Datatype{
 	C.MPI_INT,
 	C.MPI_UNSIGNED_LONG,
 	C.MPI_LONG,
+	C.MPI_FLOAT,
 	C.MPI_DOUBLE,
 	C.MPI_DOUBLE_COMPLEX,
 }
+
+type Op uint8
+
+const (
+	OpSum Op = iota
+	OpMin
+	OpMax
+	OpProd
+	OpLand
+	OpLor
+	OpLxor
+	OpBand
+	OpBor
+	OpBxor
+)
+
+var ops = [...]C.MPI_Op{
+	C.MPI_SUM,
+	C.MPI_MIN,
+	C.MPI_MAX,
+	C.MPI_PROD,
+	C.MPI_LAND,
+	C.MPI_LOR,
+	C.MPI_LXOR,
+	C.MPI_BAND,
+	C.MPI_BOR,
+	C.MPI_BXOR,
+}
+
+// returns true if the datatype can be used for the given operation.
+// This is needed because boolean/logical operators are invalid for non-ints.
+func isValidDataTypeForOp(d DataType, o Op) bool {
+	if o == OpLand || o == OpLor || o == OpLxor || o == OpBand || o == OpBor || o == OpBxor {
+		return d == Byte || d == Uint || d == Int || d == Ulong || d == Long
+	}
+	if o == OpMin || o == OpMax {
+		return d != Complex
+	}
+	return true
+}
+
 
 // Status wraps an MPI_Status structure.
 type Status struct {
@@ -169,110 +212,260 @@ func (o Communicator) Barrier() {
 	C.MPI_Barrier(o.comm)
 }
 
-// BcastBytes broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastBytes(x []int32, rank int) {
+// BcastBytes broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastBytes(x []byte, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(root), o.comm)
 }
 
-// BcastUint32s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastUint32s(x []uint32, rank int) {
+// BcastUint32s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastUint32s(x []uint32, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Uint], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Uint], C.int(root), o.comm)
 }
 
-// BcastInt32s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastInt32s(x []int32, rank int) {
+// BcastInt32s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastInt32s(x []int32, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(root), o.comm)
 }
 
-// BcastUint64s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastUint64s(x []int, rank int) {
+// BcastUint64s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastUint64s(x []uint64, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Ulong], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Ulong], C.int(root), o.comm)
 }
 
-// BcastInt64s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastInt64s(x []int, rank int) {
+// BcastInt64s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastInt64s(x []int64, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Long], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Long], C.int(root), o.comm)
 }
 
-// BcastFloat64s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastFloat64s(x []float64, rank int) {
+// BcastFloat32s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastFloat32s(x []float32, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Double], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Float], C.int(root), o.comm)
 }
 
-// BcastComplex128s broadcasts slice from root `rank` to all other processors
-func (o Communicator) BcastComplex128s(x []complex128, rank int) {
+// BcastFloat64s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastFloat64s(x []float64, root int) {
 	buf := unsafe.Pointer(&x[0])
-	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Complex], C.int(rank), o.comm)
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Double], C.int(root), o.comm)
 }
 
-// ReduceSumFloat64s sums all values in 'orig' to 'dest' on root `rank`
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) ReduceSumFloat64s(dest, orig []float64, rank int) {
-	sendbuf := unsafe.Pointer(&orig[0])
-	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpSum, C.int(rank), o.comm)
+// BcastComplex128s broadcasts slice from root `root` to all other processors
+func (o Communicator) BcastComplex128s(x []complex128, root int) {
+	buf := unsafe.Pointer(&x[0])
+	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Complex], C.int(root), o.comm)
 }
 
-// ReduceSumComplex128s sums all values in 'orig' to 'dest' on root `rank`.
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) ReduceSumComplex128s(dest, orig []complex128, rank int) {
+// ReduceBytes performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceBytes(dest, orig []byte, op Op, root int) error {
+	d := Byte
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Complex], C.OpSum, C.int(rank), o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceSumFloat64s combines all values from orig into dest summing values
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceSumFloat64s(dest, orig []float64) {
+// ReduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error {
+	d := Uint
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpSum, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceSumComplex128s combines all values from orig into dest summing values (complex version)
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceSumComplex128s(dest, orig []complex128) {
+// ReduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
+	d := Int
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Complex], C.OpSum, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceMinFloat64s combines all values from orig into dest picking minimum values
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceMinFloat64s(dest, orig []float64) {
+// ReduceUInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error {
+	d := Ulong
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpMin, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceMaxFloat64s combines all values from orig into dest picking minimum values
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceMaxFloat64s(dest, orig []float64) {
+// ReduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
+	d := Long
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Double], C.OpMax, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceMinInt64s combines all values from orig into dest picking minimum values (integer version)
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceMinInt64s(dest, orig []int) {
+// ReduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) error {
+	d := Float
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Long], C.OpMin, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
 }
 
-// AllReduceMaxInt64s combines all values from orig into dest picking minimum values (integer version)
-//   NOTE (important): orig and dest must be different slices
-func (o Communicator) AllReduceMaxInt64s(dest, orig []int) {
+// ReduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) error {
+	d := Double
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
 	sendbuf := unsafe.Pointer(&orig[0])
 	recvbuf := unsafe.Pointer(&dest[0])
-	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[Long], C.OpMax, o.comm)
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
+}
+
+// ReduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// Note: dest and orig must be different slices.
+func (o Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root int) error {
+	d := Complex
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Reduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], C.int(root), o.comm)
+	return nil
+}
+
+// AllreduceBytes performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error {
+	d := Byte
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) error {
+	d := Uint
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) error {
+	d := Int
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceUint64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) error {
+	d := Ulong
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) error {
+	d := Long
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) error {
+	d := Float
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) error {
+	d := Double
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
+}
+
+// AllreduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// Note: dest and orig must be different slices.
+func (o Communicator) AllreduceComplex128s(dest, orig []complex128, op Op, root int) error {
+	d := Complex
+	if !isValidDataTypeForOp(d, op) {
+		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
+	}
+	sendbuf := unsafe.Pointer(&orig[0])
+	recvbuf := unsafe.Pointer(&dest[0])
+	C.MPI_Allreduce(sendbuf, recvbuf, C.int(len(dest)), dataTypes[d], ops[op], o.comm)
+	return nil
 }
 
 // SendBytes sends values to processor toID with given tag

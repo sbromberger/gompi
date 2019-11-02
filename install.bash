@@ -27,6 +27,7 @@ install_and_test(){
         bash xgenflagsfile.bash
     fi
     touch *.go
+    go generate
     go install
     if [ "$DOTEST" -eq 1 ]; then
         echo "=== testing $PKG ==="
