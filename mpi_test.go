@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-const tol = 1e-17
+const tol = 1e-10
 const (
 	MaxUint32 = ^uint32(0)
 	MaxUint64 = ^uint64(0)
@@ -531,12 +531,12 @@ func reduce(A Communicator, t *testing.T) func(*testing.T) {
 						{-1, -1, -1, -1}, // min
 						{1, 2, 3, 4},     // max
 						{-1, -2, -3, -4}, // prod
-						{}, // land - not tested
-						{}, // lor - not tested
-						{}, // lxor - not tested
-						{}, // band - not tested
-						{}, // bor - not tested
-						{}, // bxor - not tested
+						{},               // land - not tested
+						{},               // lor - not tested
+						{},               // lxor - not tested
+						{},               // band - not tested
+						{},               // bor - not tested
+						{},               // bxor - not tested
 					}
 					x := make([]float32, 4)
 					setSliceFloat32(x, int(A.Rank()), 0)
@@ -568,12 +568,12 @@ func reduce(A Communicator, t *testing.T) func(*testing.T) {
 						{-1, -1, -1, -1}, // min
 						{1, 2, 3, 4},     // max
 						{-1, -2, -3, -4}, // prod
-						{}, // land - not tested
-						{}, // lor - not tested
-						{}, // lxor - not tested
-						{}, // band - not tested
-						{}, // bor - not tested
-						{}, // bxor - not tested
+						{},               // land - not tested
+						{},               // lor - not tested
+						{},               // lxor - not tested
+						{},               // band - not tested
+						{},               // bor - not tested
+						{},               // bxor - not tested
 					}
 					x := make([]float64, 4)
 					setSliceFloat64(x, int(A.Rank()), 0)
@@ -637,18 +637,306 @@ func reduce(A Communicator, t *testing.T) func(*testing.T) {
 					}
 				})
 				A.Barrier()
+			})
+		}
+	}
+}
+func allreduce(A Communicator, t *testing.T) func(*testing.T) {
+	root := 3
+	testNames := [...]string{
+		"sum",
+		"min",
+		"max",
+		"prod",
+		"land",
+		"lor",
+		"lxor",
+		"band",
+		"bor",
+		"bxor",
+	}
 
-				// t.Run("complex128", func(t *testing.T) {
-				// 	x := make([]complex128, 4)
-				// 	setSliceComplex128(x, int(A.Rank()), 0)
-				// 	res := make([]complex128, len(x))
-				// 	A.ReduceSumComplex128s(res, x, root)
-				// 	if A.Rank() == root {
-				// 		chkArraysEqualComplex128(t, res, []complex128{complex(-2, -2.9), complex(-1, -2.8), complex(0, -2.7), complex(1, -2.6)})
-				// 	} else {
-				// 		chkArraysEqualComplex128(t, res, []complex128{0, 0, 0, 0})
-				// 	}
-				// })
+	return func(t *testing.T) {
+		for opidx := range ops {
+			t.Run(testNames[opidx], func(t *testing.T) {
+				op := Op(opidx)
+				t.Run("byte", func(t *testing.T) {
+					results := [...][]byte{
+						{0xfe, 0xff, 0, 1},       // sum
+						{1, 2, 3, 4},             // min
+						{0xff, 0xff, 0xff, 0xff}, // max
+						{0xff, 0xfe, 0xfd, 0xfc}, // prod
+						{1, 1, 1, 1},             // land
+						{1, 1, 1, 1},             // lor
+						{0, 0, 0, 0},             // lxor
+						{1, 2, 3, 4},             // band
+						{0xff, 0xff, 0xff, 0xff}, // bor
+						{0xfe, 0xfd, 0xfc, 0xfb}, // bxor
+					}
+
+					x := make([]byte, 4)
+					setSliceByte(x, int(A.Rank()), 0)
+					res := make([]byte, len(x))
+					err := A.AllreduceBytes(res, x, op, root)
+					valid := isValidDataTypeForOp(Byte, op)
+
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualByte(res, exp) {
+						fmt.Println("x = ", x)
+						t.Errorf("rank %d received %v, expected %v", A.Rank(), res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("uint32", func(t *testing.T) {
+					results := [...][]uint32{
+						{MaxUint32 - 1, MaxUint32, 0, 1},                         // sum
+						{1, 2, 3, 4},                                             // min
+						{MaxUint32, MaxUint32, MaxUint32, MaxUint32},             // max
+						{MaxUint32, MaxUint32 - 1, MaxUint32 - 2, MaxUint32 - 3}, // prod
+						{1, 1, 1, 1}, // land
+						{1, 1, 1, 1}, // lor
+						{0, 0, 0, 0}, // lxor
+						{1, 2, 3, 4}, // band
+						{MaxUint32, MaxUint32, MaxUint32, MaxUint32},                 // bor
+						{MaxUint32 - 1, MaxUint32 - 2, MaxUint32 - 3, MaxUint32 - 4}, // bxor
+					}
+
+					x := make([]uint32, 4)
+					setSliceUint32(x, int(A.Rank()), 0)
+					res := make([]uint32, len(x))
+					err := A.AllreduceUint32s(res, x, op, root)
+					valid := isValidDataTypeForOp(Uint, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualUint32(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("int32", func(t *testing.T) {
+					results := [...][]int32{
+						{-2, -1, 0, 1},   // sum
+						{-1, -1, -1, -1}, // min
+						{1, 2, 3, 4},     // max
+						{-1, -2, -3, -4}, // prod
+						{1, 1, 1, 1},     // land
+						{1, 1, 1, 1},     // lor
+						{0, 0, 0, 0},     // lxor
+						{1, 2, 3, 4},     // band
+						{-1, -1, -1, -1}, // bor
+						{-2, -3, -4, -5}, // bxor
+					}
+					x := make([]int32, 4)
+					setSliceInt32(x, int(A.Rank()), 0)
+					res := make([]int32, len(x))
+					err := A.AllreduceInt32s(res, x, op, root)
+					valid := isValidDataTypeForOp(Int, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualInt32(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("uint64", func(t *testing.T) {
+					results := [...][]uint64{
+						{MaxUint64 - 1, MaxUint64, 0, 1},                         // sum
+						{1, 2, 3, 4},                                             // min
+						{MaxUint64, MaxUint64, MaxUint64, MaxUint64},             // max
+						{MaxUint64, MaxUint64 - 1, MaxUint64 - 2, MaxUint64 - 3}, // prod
+						{1, 1, 1, 1}, // land
+						{1, 1, 1, 1}, // lor
+						{0, 0, 0, 0}, // lxor
+						{1, 2, 3, 4}, // band
+						{MaxUint64, MaxUint64, MaxUint64, MaxUint64},                 // bor
+						{MaxUint64 - 1, MaxUint64 - 2, MaxUint64 - 3, MaxUint64 - 4}, // bxor
+					}
+
+					x := make([]uint64, 4)
+					setSliceUint64(x, int(A.Rank()), 0)
+					res := make([]uint64, len(x))
+					err := A.AllreduceUint64s(res, x, op, root)
+					valid := isValidDataTypeForOp(Ulong, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualUint64(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("int64", func(t *testing.T) {
+					results := [...][]int64{
+						{-2, -1, 0, 1},   // sum
+						{-1, -1, -1, -1}, // min
+						{1, 2, 3, 4},     // max
+						{-1, -2, -3, -4}, // prod
+						{1, 1, 1, 1},     // land
+						{1, 1, 1, 1},     // lor
+						{0, 0, 0, 0},     // lxor
+						{1, 2, 3, 4},     // band
+						{-1, -1, -1, -1}, // bor
+						{-2, -3, -4, -5}, // bxor
+					}
+					x := make([]int64, 4)
+					setSliceInt64(x, int(A.Rank()), 0)
+					res := make([]int64, len(x))
+					err := A.AllreduceInt64s(res, x, op, root)
+					valid := isValidDataTypeForOp(Long, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualInt64(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("float32", func(t *testing.T) {
+					results := [...][]float32{
+						{-2, -1, 0, 1},   // sum
+						{-1, -1, -1, -1}, // min
+						{1, 2, 3, 4},     // max
+						{-1, -2, -3, -4}, // prod
+						{},               // land - not tested
+						{},               // lor - not tested
+						{},               // lxor - not tested
+						{},               // band - not tested
+						{},               // bor - not tested
+						{},               // bxor - not tested
+					}
+					x := make([]float32, 4)
+					setSliceFloat32(x, int(A.Rank()), 0)
+					res := make([]float32, len(x))
+					err := A.AllreduceFloat32s(res, x, op, root)
+					valid := isValidDataTypeForOp(Float, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualFloat32(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("float64", func(t *testing.T) {
+					results := [...][]float64{
+						{-2, -1, 0, 1},   // sum
+						{-1, -1, -1, -1}, // min
+						{1, 2, 3, 4},     // max
+						{-1, -2, -3, -4}, // prod
+						{},               // land - not tested
+						{},               // lor - not tested
+						{},               // lxor - not tested
+						{},               // band - not tested
+						{},               // bor - not tested
+						{},               // bxor - not tested
+					}
+					x := make([]float64, 4)
+					setSliceFloat64(x, int(A.Rank()), 0)
+					res := make([]float64, len(x))
+					err := A.AllreduceFloat64s(res, x, op, root)
+					valid := isValidDataTypeForOp(Double, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualFloat64(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
+				A.Barrier()
+
+				t.Run("complex128", func(t *testing.T) {
+					results := [...][]complex128{
+						{(-2 - 2.9i), (-1 - 2.8i), (0 - 2.7i), (1 - 2.6i)}, // sum
+						{}, // min - not tested
+						{}, // max - not tested
+
+						{(2.2 - 1.8i), (4.4 - 3.6i), (6.6 - 5.4i), (8.8 - 7.199999999999999i)}, //prod
+						{}, // prod - not tested
+						{}, // land - not tested
+						{}, // lor - not tested
+						{}, // lxor - not tested
+						{}, // band - not tested
+						{}, // bor - not tested
+						{}, // bxor - not tested
+					}
+					x := make([]complex128, 4)
+					setSliceComplex128(x, int(A.Rank()), 0)
+					res := make([]complex128, len(x))
+					err := A.AllreduceComplex128s(res, x, op, root)
+					valid := isValidDataTypeForOp(Complex, op)
+					if err != nil {
+						if valid {
+							t.Errorf("Improper error was thrown: valid data type for the op was supplied")
+						}
+						return
+					}
+					if !valid {
+						t.Errorf("Error should have been thrown: invalid data type for op not properly detected.")
+					}
+					exp := results[opidx]
+					if !chkArraysEqualComplex128(res, exp) {
+						t.Errorf("received %v, expected %v", res, exp)
+					}
+				})
 				A.Barrier()
 			})
 		}
@@ -672,6 +960,8 @@ func TestMPI(t *testing.T) {
 	t.Run("Bcast", bcast(A, t))
 	A.Barrier()
 	t.Run("Reduce", reduce(A, t))
+	A.Barrier()
+	t.Run("Allreduce", allreduce(A, t))
 	A.Barrier()
 	// t.Run("ReduceSumFloat64s", func(t *testing.T) {
 	// 	root := 3

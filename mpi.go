@@ -35,7 +35,7 @@ const (
 	Uint             // This maps to a uint32 in go.
 	Int              // This maps to an int32 in go.
 	Ulong            // This maps to a uint64 in go.
-	Long             // This maps to an int64 in go. 32-bit systems should cast to int32.
+	Long             // This maps to an int64 in go.
 	Float            // This maps to a float32 in go
 	Double           // This maps to a float64 in go.
 	Complex          // This maps to a complex128 in go.
@@ -91,7 +91,6 @@ func isValidDataTypeForOp(d DataType, o Op) bool {
 	}
 	return true
 }
-
 
 // Status wraps an MPI_Status structure.
 type Status struct {
