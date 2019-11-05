@@ -80,8 +80,9 @@ var ops = [...]C.MPI_Op{
 	C.MPI_BXOR,
 }
 
-// returns true if the datatype can be used for the given operation.
-// This is needed because boolean/logical operators are invalid for non-ints.
+// Returns true if the datatype can be used for the given operation.
+// This is needed because boolean/logical operators are invalid for non-ints,
+// and complex numbers have no ordering.
 func isValidDataTypeForOp(d DataType, o Op) bool {
 	if o == OpLand || o == OpLor || o == OpLxor || o == OpBand || o == OpBor || o == OpBxor {
 		return d == Byte || d == Uint || d == Int || d == Ulong || d == Long
