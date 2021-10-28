@@ -18,6 +18,8 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Build and Install
-      run: ./install.bash
+      run:
+        go get golang.org/x/tools/cmd/stringer |
+        ./install.bash
     - name: Test
       run: go test ./...
