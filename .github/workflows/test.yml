@@ -17,8 +17,9 @@ jobs:
       run: sudo apt update && sudo apt install -y --no-install-recommends libopenmpi-dev openmpi-common openmpi-bin
     - name: Checkout code
       uses: actions/checkout@v2
-    - name: Build and Install
+    - name: Install Stringer
       run: go get golang.org/x/tools/cmd/stringer
+    - name: Build and Install
       run: ./install.bash
     - name: Test
       run: go test ./...
