@@ -3,7 +3,7 @@ GoMPI: Message Passing Interface for Parallel Computing
 The `gompi` package is a lightweight wrapper to the [OpenMPI](https://www.open-mpi.org) C++ library
 designed to develop algorithms for parallel computing.
 
-GoMPI is a fork of the [gosl MPI](https://github.com/cpmech/gosl/mpi) package with additional methods.
+GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with additional methods.
 
 ## Installation
 
@@ -36,7 +36,7 @@ The latency benchmarks are as follows (note: the Go benchmark does not test a me
 | 16384 | 3.61 | 2.36 |
 | 32768 | 4.83 | 3.32 |
 | 65536 | 9.24 | 4.96 |
-| 131072 | 17.15  10.53 |
+| 131072 | 17.15 |  10.53 |
 | 262144 | 31.09 | 23.07 |
 | 524288 | 57.01 | 43.78 |
 | 1048576 | 117.72 | 84.43 |
