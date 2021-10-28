@@ -5,7 +5,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+//go:build !windows
 // +build !windows
+
 //go:generate stringer -type=DataType
 //go:generate stringer -type=Op
 
@@ -157,6 +159,10 @@ func WorldSize() (size int) {
 	var s int32
 	C.MPI_Comm_size(C.World, (*C.int)(unsafe.Pointer(&s)))
 	return int(s)
+}
+
+func WorldTime() float64 {
+	return float64(C.MPI_Wtime())
 }
 
 // Communicator holds the World communicator or a subset communicator

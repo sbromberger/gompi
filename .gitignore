@@ -1,2 +1,3 @@
+xautogencgoflags.go
 oldtests/
-cmd/
+cmd/latency
