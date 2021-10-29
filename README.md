@@ -16,7 +16,7 @@ GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with a
 
 The latency benchmarks are as follows (note: the Go benchmark does not test a message size of zero bytes):
 
-| message size(bytes) | GoMPI (us) | OSU MPI Latency Test v5.8 (us) |
+| message size (bytes) | GoMPI (µs) | OSU MPI Latency Test v5.8 (µs) |
 |---|---|---|
 | 0 | n/a  | 0.36 |
 | 1 | 0.45 | 0.33 |
