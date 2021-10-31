@@ -9,7 +9,9 @@ GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with a
 
 1) install [OpenMPI](https://www.open-mpi.org) for your system
 2) ensure  [golang.org/x/tools/cmd/stringer](https://godoc.org/golang.org/x/tools/cmd/stringer) is installed (`go get` if not)
-3) run `install.bash`
+3) run `make install`
+
+(Other `make` options include `test`, `build`, and `clean`.)
 
 
 ## Performance
