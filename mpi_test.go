@@ -94,6 +94,10 @@ func setSliceComplex128(x []complex128, rank int, offset complex128) {
 	}
 }
 
+func chkStatus(s Status, source, tag int) bool {
+	return s.GetSource() == source && s.GetTag() == tag
+}
+
 func chkArraysEqualByte(a, b []byte) bool {
 	if len(a) != len(b) {
 		return false
@@ -944,7 +948,7 @@ func allreduce(A Communicator, t *testing.T) func(*testing.T) {
 }
 
 func TestMPI(t *testing.T) {
-	Start()
+	Start(true)
 	defer Stop()
 	if WorldSize() < 4 {
 		t.Fatal("These tests require 4 processors (are you running with mpirun?)\n")
@@ -1017,7 +1021,8 @@ func TestMPI(t *testing.T) {
 				A.SendFloat64s(s, k, 1)
 			}
 		} else {
-			y := A.RecvFloat64s(0, 1)
+			y, s := A.RecvFloat64s(0, 1)
+			chkStatus(s, 0, 1)
 			chkArraysEqualFloat64(y, []float64{123, 123, 123, 123})
 		}
 	})
@@ -1030,8 +1035,9 @@ func TestMPI(t *testing.T) {
 				A.SendInt64s(s, k, 2)
 			}
 		} else {
-			y := A.RecvInt64s(0, 2)
+			y, s := A.RecvInt64s(0, 2)
 			chkArraysEqualInt64(y, []int64{123, 123, 123, 123})
+			chkStatus(s, 0, 2)
 		}
 	})
 
@@ -1043,11 +1049,12 @@ func TestMPI(t *testing.T) {
 				A.SendInt64(int64(k*111), k, 3)
 			}
 		} else {
-			res := A.RecvInt64(0, 3)
+			res, s := A.RecvInt64(0, 3)
 			exp := int64(111 * A.Rank())
 			if res != exp {
 				t.Errorf("received %d, expected %d", res, exp)
 			}
+			chkStatus(s, 0, 3)
 		}
 	})
 
@@ -1062,10 +1069,11 @@ func TestMPI(t *testing.T) {
 		} else {
 			res := make([]byte, 13)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
-			A.RecvPreallocBytes(res, 0, 4)
+			s := A.RecvPreallocBytes(res, 0, 4)
 			if string(res) != exp {
 				t.Errorf("received %s, expected %s", res, exp)
 			}
+			chkStatus(s, 0, 4)
 		}
 	})
 
@@ -1075,15 +1083,16 @@ func TestMPI(t *testing.T) {
 	t.Run("SendString/RecvString", func(t *testing.T) {
 		if A.Rank() == 0 {
 			for k := 1; k <= 3; k++ {
-				s := fmt.Sprintf("Hello Rank %d!", k)
-				A.SendString(s, k, 5)
+				str := fmt.Sprintf("Hello Rank %d!", k)
+				A.SendString(str, k, 5)
 			}
 		} else {
-			res := A.RecvString(0, 5)
+			res, s := A.RecvString(0, 5)
 			exp := fmt.Sprintf("Hello Rank %d!", A.Rank())
 			if res != exp {
 				t.Errorf("received %s, expected %s", res, exp)
 			}
+			chkStatus(s, 0, 5)
 		}
 	})
 
@@ -1098,6 +1107,46 @@ func TestMPI(t *testing.T) {
 			}
 		} else {
 			s := A.Probe(3, 6)
+			src := s.GetSource()
+			if src != 3 {
+				t.Errorf("GetSource: received %d, expected 3", src)
+			}
+			n := s.GetCount(Long)
+			if n != 3 {
+				t.Errorf("GetCount: received %d, expected 3", n)
+			}
+		}
+	})
+
+	// Iprobe
+	t.Run("Iprobe", func(t *testing.T) {
+		if A.Rank() == 1 {
+			if b, _ := A.Iprobe(3, 0); b {
+				t.Errorf("Status: received %v, expected false", b)
+			}
+		}
+		if A.Rank() == 3 {
+			vals := []int64{1, 4, 9}
+			for k := 0; k < 3; k++ {
+				A.SendInt64s(vals, k, 6)
+			}
+		} else {
+			b, _ := A.Iprobe(3, MPI_ANY_TAG)
+			if !b {
+				t.Errorf("Status: received %v, expected true", b)
+			}
+			b, _ = A.Iprobe(MPI_ANY_SOURCE, 6)
+			if !b {
+				t.Errorf("Status: received %v, expected true", b)
+			}
+			b, _ = A.Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG)
+			if !b {
+				t.Errorf("Status: received %v, expected true", b)
+			}
+			b, s := A.Iprobe(3, 6)
+			if !b {
+				t.Errorf("Status: received %v, expected true", b)
+			}
 			src := s.GetSource()
 			if src != 3 {
 				t.Errorf("GetSource: received %d, expected 3", src)
