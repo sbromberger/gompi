@@ -86,6 +86,8 @@ var ops = [...]C.MPI_Op{
 	C.MPI_BXOR,
 }
 
+var THREADED bool
+
 // Returns true if the datatype can be used for the given operation.
 // This is needed because boolean/logical operators are invalid for non-ints,
 // and complex numbers have no ordering.
@@ -107,8 +109,17 @@ type Status struct {
 // Probe issues an MPI Probe and returns a Status structure.
 func (o Communicator) Probe(source int, tag int) Status {
 	var s Status
+	fmt.Println("NOT THREADED")
 	C.MPI_Probe(C.int(source), C.int(tag), o.comm, &(s.mpiStatus))
 	return s
+}
+
+func (o Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
+	var s Status
+	var msg C.MPI_Message
+	fmt.Println("THREADED")
+	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &msg, &(s.mpiStatus))
+	return s, msg
 }
 
 // GetCount returns a count of elements of type `t` from a Status object.
@@ -149,6 +160,7 @@ func Start(threaded bool) {
 	} else {
 		C.MPI_Init(nil, nil)
 	}
+	THREADED = threaded
 }
 
 // Stop finalises MPI
@@ -498,11 +510,29 @@ func (o Communicator) RecvPreallocBytes(vals []byte, fromID int, tag int) Status
 	return status
 }
 
+// MrecvPreallocBytes receives values from processor fromId with given tag with threading
+func (o Communicator) MrecvPreallocBytes(vals []byte, fromID int, tag int, msg C.MPI_Message) Status {
+	buf := unsafe.Pointer(&vals[0])
+	status := Status{}
+
+	C.MPI_Mrecv(buf, C.int(len(vals)), dataTypes[Byte], &msg, &(status.mpiStatus))
+	return status
+}
+
 // RecvBytes returns a slice of bytes received from processor fromId with given tag.
 func (o Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
 	l := o.Probe(fromID, tag).GetCount(Byte)
 	buf := make([]byte, l)
 	status := o.RecvPreallocBytes(buf, fromID, tag)
+	return buf, status
+}
+
+// MrecvBytes returns a slice of bytes received from processor fromId with given tag.
+func (o Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
+	pstatus, msg := o.Mprobe(fromID, tag)
+	l := pstatus.GetCount(Byte)
+	buf := make([]byte, l)
+	status := o.MrecvPreallocBytes(buf, fromID, tag, msg)
 	return buf, status
 }
 
