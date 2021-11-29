@@ -14,7 +14,7 @@ const (
 )
 
 func main() {
-	mpi.Start() // line 45
+	mpi.Start(false) // line 45
 	o := mpi.NewCommunicator(nil)
 	if mpi.WorldSize() != 2 { // line 88
 		panic("This test requires exactly 2 processors")
