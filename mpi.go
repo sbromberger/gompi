@@ -86,8 +86,6 @@ var ops = [...]C.MPI_Op{
 	C.MPI_BXOR,
 }
 
-var THREADED bool
-
 // Returns true if the datatype can be used for the given operation.
 // This is needed because boolean/logical operators are invalid for non-ints,
 // and complex numbers have no ordering.
@@ -109,7 +107,6 @@ type Status struct {
 // Probe issues an MPI Probe and returns a Status structure.
 func (o Communicator) Probe(source int, tag int) Status {
 	var s Status
-	fmt.Println("NOT THREADED")
 	C.MPI_Probe(C.int(source), C.int(tag), o.comm, &(s.mpiStatus))
 	return s
 }
@@ -117,7 +114,6 @@ func (o Communicator) Probe(source int, tag int) Status {
 func (o Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
 	var s Status
 	var msg C.MPI_Message
-	fmt.Println("THREADED")
 	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &msg, &(s.mpiStatus))
 	return s, msg
 }
@@ -160,7 +156,6 @@ func Start(threaded bool) {
 	} else {
 		C.MPI_Init(nil, nil)
 	}
-	THREADED = threaded
 }
 
 // Stop finalises MPI
