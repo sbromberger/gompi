@@ -26,6 +26,8 @@ import "C"
 
 import (
 	"fmt"
+	"log"
+	"runtime"
 	"unsafe"
 )
 
@@ -153,6 +155,9 @@ func Start(threaded bool) {
 	if threaded {
 		var x C.int
 		C.MPI_Init_thread(nil, nil, C.MPI_THREAD_MULTIPLE, &x)
+		if x != C.MPI_THREAD_MULTIPLE {
+			log.Fatalf("Requested threading support %d not available (%d).", C.MPI_THREAD_MULTIPLE, x)
+		}
 	} else {
 		C.MPI_Init(nil, nil)
 	}
@@ -524,6 +529,7 @@ func (o Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
 
 // MrecvBytes returns a slice of bytes received from processor fromId with given tag.
 func (o Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
+	runtime.LockOSThread()
 	pstatus, msg := o.Mprobe(fromID, tag)
 	l := pstatus.GetCount(Byte)
 	buf := make([]byte, l)
