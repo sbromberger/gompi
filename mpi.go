@@ -36,7 +36,9 @@ type DataType uint8
 const (
 	MPI_ANY_SOURCE = C.MPI_ANY_SOURCE
 	MPI_ANY_TAG    = C.MPI_ANY_TAG
+	MPI_MAX_TAG    = C.MPI_TAG_UB
 )
+
 const (
 	// These constants represent (a subset of) MPI datatypes.
 	Byte    DataType = iota
