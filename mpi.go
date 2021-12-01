@@ -211,8 +211,9 @@ func WorldTime() float64 {
 
 // Communicator holds the World communicator or a subset communicator
 type Communicator struct {
-	comm  C.MPI_Comm
-	group C.MPI_Group
+	comm   C.MPI_Comm
+	group  C.MPI_Group
+	maxTag int
 }
 
 // NewCommunicator creates a new communicator or returns the World communicator
@@ -223,6 +224,11 @@ func NewCommunicator(ranks []int) Communicator {
 	if len(ranks) == 0 {
 		o.comm = C.World
 		C.MPI_Comm_group(C.World, &o.group)
+		maxtag, err := o.GetMaxTag()
+		if err != nil {
+			panic(err)
+		}
+		o.maxTag = maxtag
 		return o
 	}
 	rs := make([]int32, len(ranks))
