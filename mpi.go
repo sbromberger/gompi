@@ -36,7 +36,6 @@ type DataType uint8
 const (
 	MPI_ANY_SOURCE = C.MPI_ANY_SOURCE
 	MPI_ANY_TAG    = C.MPI_ANY_TAG
-	MPI_MAX_TAG    = C.MPI_TAG_UB
 )
 
 const (
@@ -106,6 +105,28 @@ func isValidDataTypeForOp(d DataType, o Op) bool {
 // Status wraps an MPI_Status structure.
 type Status struct {
 	mpiStatus C.MPI_Status
+}
+
+func (o Communicator) GetAttr(attribute int) (int, bool, error) {
+	var n int
+	var found C.int
+
+	x := C.MPI_Comm_get_attr(o.comm, C.int(attribute), unsafe.Pointer(&n), &found)
+	if x != C.MPI_SUCCESS {
+		return int(n), int(found) == 1, fmt.Errorf("GetAttr returned error %d\n", x)
+	}
+	return int(n), int(found) == 1, nil
+}
+
+func (o Communicator) GetMaxTag() (int, error) {
+	x, found, err := o.GetAttr(C.MPI_TAG_UB)
+	if !found {
+		return -1, fmt.Errorf("No max tag value found")
+	}
+	if err != nil {
+		return -1, err
+	}
+	return x, nil
 }
 
 // Probe issues an MPI Probe and returns a Status structure.
