@@ -1,3 +1,5 @@
+![CI](https://github.com/sbromberger/gompi/actions/workflows/test/badge.svg)
+
 GoMPI: Message Passing Interface for Parallel Computing
 
 The `gompi` package is a lightweight wrapper to the [OpenMPI](https://www.open-mpi.org) C++ library
