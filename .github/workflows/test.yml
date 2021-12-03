@@ -22,4 +22,4 @@ jobs:
     - name: Build and Install
       run: make install
     - name: Test
-      run: mpirun -n 4 go test ./...
+      run: make test
