@@ -57,7 +57,7 @@ build: valid xgenflags
 install: build goinstall
 
 test:
-	mpirun -n 4 go test . ;
+	mpirun -n 4 --oversubscribe go test . ;
 
 clean:
 	rm -f $(FLAGS_FILE)
