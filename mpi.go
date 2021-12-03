@@ -26,6 +26,8 @@ import "C"
 
 import (
 	"fmt"
+	"log"
+	"runtime"
 	"unsafe"
 )
 
@@ -35,6 +37,7 @@ const (
 	MPI_ANY_SOURCE = C.MPI_ANY_SOURCE
 	MPI_ANY_TAG    = C.MPI_ANY_TAG
 )
+
 const (
 	// These constants represent (a subset of) MPI datatypes.
 	Byte    DataType = iota
@@ -104,11 +107,40 @@ type Status struct {
 	mpiStatus C.MPI_Status
 }
 
+func (o Communicator) GetAttr(attribute int) (int, bool, error) {
+	var n int
+	var found C.int
+
+	x := C.MPI_Comm_get_attr(o.comm, C.int(attribute), unsafe.Pointer(&n), &found)
+	if x != C.MPI_SUCCESS {
+		return int(n), int(found) == 1, fmt.Errorf("GetAttr returned error %d\n", x)
+	}
+	return int(n), int(found) == 1, nil
+}
+
+func (o Communicator) GetMaxTag() (int, error) {
+	x, found, err := o.GetAttr(C.MPI_TAG_UB)
+	if !found {
+		return -1, fmt.Errorf("No max tag value found")
+	}
+	if err != nil {
+		return -1, err
+	}
+	return x, nil
+}
+
 // Probe issues an MPI Probe and returns a Status structure.
 func (o Communicator) Probe(source int, tag int) Status {
 	var s Status
 	C.MPI_Probe(C.int(source), C.int(tag), o.comm, &(s.mpiStatus))
 	return s
+}
+
+func (o Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
+	var s Status
+	var msg C.MPI_Message
+	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &msg, &(s.mpiStatus))
+	return s, msg
 }
 
 // GetCount returns a count of elements of type `t` from a Status object.
@@ -146,6 +178,9 @@ func Start(threaded bool) {
 	if threaded {
 		var x C.int
 		C.MPI_Init_thread(nil, nil, C.MPI_THREAD_MULTIPLE, &x)
+		if x != C.MPI_THREAD_MULTIPLE {
+			log.Fatalf("Requested threading support %d not available (%d).", C.MPI_THREAD_MULTIPLE, x)
+		}
 	} else {
 		C.MPI_Init(nil, nil)
 	}
@@ -176,8 +211,9 @@ func WorldTime() float64 {
 
 // Communicator holds the World communicator or a subset communicator
 type Communicator struct {
-	comm  C.MPI_Comm
-	group C.MPI_Group
+	comm   C.MPI_Comm
+	group  C.MPI_Group
+	MaxTag int
 }
 
 // NewCommunicator creates a new communicator or returns the World communicator
@@ -188,6 +224,11 @@ func NewCommunicator(ranks []int) Communicator {
 	if len(ranks) == 0 {
 		o.comm = C.World
 		C.MPI_Comm_group(C.World, &o.group)
+		maxtag, err := o.GetMaxTag()
+		if err != nil {
+			panic(err)
+		}
+		o.MaxTag = maxtag
 		return o
 	}
 	rs := make([]int32, len(ranks))
@@ -498,11 +539,30 @@ func (o Communicator) RecvPreallocBytes(vals []byte, fromID int, tag int) Status
 	return status
 }
 
+// MrecvPreallocBytes receives values from processor fromId with given tag with threading
+func (o Communicator) MrecvPreallocBytes(vals []byte, fromID int, tag int, msg C.MPI_Message) Status {
+	buf := unsafe.Pointer(&vals[0])
+	status := Status{}
+
+	C.MPI_Mrecv(buf, C.int(len(vals)), dataTypes[Byte], &msg, &(status.mpiStatus))
+	return status
+}
+
 // RecvBytes returns a slice of bytes received from processor fromId with given tag.
 func (o Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
 	l := o.Probe(fromID, tag).GetCount(Byte)
 	buf := make([]byte, l)
 	status := o.RecvPreallocBytes(buf, fromID, tag)
+	return buf, status
+}
+
+// MrecvBytes returns a slice of bytes received from processor fromId with given tag.
+func (o Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
+	runtime.LockOSThread()
+	pstatus, msg := o.Mprobe(fromID, tag)
+	l := pstatus.GetCount(Byte)
+	buf := make([]byte, l)
+	status := o.MrecvPreallocBytes(buf, fromID, tag, msg)
 	return buf, status
 }
 
