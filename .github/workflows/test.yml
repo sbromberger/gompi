@@ -20,6 +20,6 @@ jobs:
     - name: Install Stringer
       run: go get golang.org/x/tools/cmd/stringer
     - name: Build and Install
-      run: ./install.bash
+      run: make install
     - name: Test
       run: mpirun -n 4 go test ./...
