@@ -34,8 +34,8 @@ import (
 type DataType uint8
 
 const (
-	MPI_ANY_SOURCE = C.MPI_ANY_SOURCE
-	MPI_ANY_TAG    = C.MPI_ANY_TAG
+	AnySource = C.MPI_ANY_SOURCE
+	AnyTag    = C.MPI_ANY_TAG
 )
 
 const (
@@ -60,6 +60,10 @@ var dataTypes = [...]C.MPI_Datatype{
 	C.MPI_DOUBLE,
 	C.MPI_DOUBLE_COMPLEX,
 }
+
+const (
+	CommTypeShared = C.MPI_COMM_TYPE_SHARED
+)
 
 type Op uint8
 
@@ -107,7 +111,7 @@ type Status struct {
 	mpiStatus C.MPI_Status
 }
 
-func (o Communicator) GetAttr(attribute int) (int, bool, error) {
+func (o *Communicator) GetAttr(attribute int) (int, bool, error) {
 	var n int
 	var found C.int
 
@@ -118,7 +122,7 @@ func (o Communicator) GetAttr(attribute int) (int, bool, error) {
 	return int(n), int(found) == 1, nil
 }
 
-func (o Communicator) GetMaxTag() (int, error) {
+func (o *Communicator) GetMaxTag() (int, error) {
 	x, found, err := o.GetAttr(C.MPI_TAG_UB)
 	if !found {
 		return -1, fmt.Errorf("No max tag value found")
@@ -130,13 +134,13 @@ func (o Communicator) GetMaxTag() (int, error) {
 }
 
 // Probe issues an MPI Probe and returns a Status structure.
-func (o Communicator) Probe(source int, tag int) Status {
+func (o *Communicator) Probe(source int, tag int) *Status {
 	var s Status
 	C.MPI_Probe(C.int(source), C.int(tag), o.comm, &(s.mpiStatus))
-	return s
+	return &s
 }
 
-func (o Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
+func (o *Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
 	var s Status
 	var msg C.MPI_Message
 	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &msg, &(s.mpiStatus))
@@ -144,24 +148,24 @@ func (o Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
 }
 
 // GetCount returns a count of elements of type `t` from a Status object.
-func (s Status) GetCount(t DataType) int {
+func (s *Status) GetCount(t DataType) int {
 	var n C.int
 	C.MPI_Get_count(&s.mpiStatus, dataTypes[t], &n)
 	return int(n)
 }
 
 // GetError returns the error code from a Status object.
-func (s Status) GetError() int {
+func (s *Status) GetError() int {
 	return int(s.mpiStatus.MPI_ERROR)
 }
 
 // GetSource returns the source (sender) of an MPI message.
-func (s Status) GetSource() int {
+func (s *Status) GetSource() int {
 	return int(s.mpiStatus.MPI_SOURCE)
 }
 
 // GetTag returns the tag associated with the MPI channel.
-func (s Status) GetTag() int {
+func (s *Status) GetTag() int {
 	return int(s.mpiStatus.MPI_TAG)
 }
 
@@ -219,7 +223,7 @@ type Communicator struct {
 // NewCommunicator creates a new communicator or returns the World communicator
 //   ranks -- World indices of processors in this Communicator.
 //            use nil or empty to get the World Communicator
-func NewCommunicator(ranks []int) Communicator {
+func NewCommunicator(ranks []int) *Communicator {
 	var o Communicator
 	if len(ranks) == 0 {
 		o.comm = C.World
@@ -229,7 +233,7 @@ func NewCommunicator(ranks []int) Communicator {
 			panic(err)
 		}
 		o.MaxTag = maxtag
-		return o
+		return &o
 	}
 	rs := make([]int32, len(ranks))
 	for i := 0; i < len(ranks); i++ {
@@ -241,84 +245,87 @@ func NewCommunicator(ranks []int) Communicator {
 	C.MPI_Comm_group(C.World, &wgroup)
 	C.MPI_Group_incl(wgroup, n, r, &o.group)
 	C.MPI_Comm_create(C.World, o.group, &o.comm)
-	return o
+	return &o
 }
 
+// SplitType splits the communicator using MPI_Comm_split_type.
+// func (o *Communicator) SplitType(type int)
+
 // Rank returns the processor rank/ID
-func (o Communicator) Rank() (rank int) {
+func (o *Communicator) Rank() (rank int) {
 	var r int32
 	C.MPI_Comm_rank(o.comm, (*C.int)(unsafe.Pointer(&r)))
 	return int(r)
 }
 
 // Size returns the number of processors
-func (o Communicator) Size() (size int) {
+func (o *Communicator) Size() (size int) {
 	var s int32
 	C.MPI_Comm_size(o.comm, (*C.int)(unsafe.Pointer(&s)))
 	return int(s)
 }
 
 // Abort aborts MPI
-func (o Communicator) Abort(errcode int) {
+func (o *Communicator) Abort(errcode int) {
 	C.MPI_Abort(o.comm, C.int(errcode))
 }
 
 // Barrier forces synchronisation
-func (o Communicator) Barrier() {
+func (o *Communicator) Barrier() {
 	C.MPI_Barrier(o.comm)
 }
 
 // BcastBytes broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastBytes(x []byte, root int) {
+func (o *Communicator) BcastBytes(x []byte, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(root), o.comm)
 }
 
 // BcastUint32s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastUint32s(x []uint32, root int) {
+func (o *Communicator) BcastUint32s(x []uint32, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Uint], C.int(root), o.comm)
 }
 
 // BcastInt32s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastInt32s(x []int32, root int) {
+func (o *Communicator) BcastInt32s(x []int32, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Int], C.int(root), o.comm)
 }
 
 // BcastUint64s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastUint64s(x []uint64, root int) {
+func (o *Communicator) BcastUint64s(x []uint64, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Ulong], C.int(root), o.comm)
 }
 
 // BcastInt64s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastInt64s(x []int64, root int) {
+func (o *Communicator) BcastInt64s(x []int64, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Long], C.int(root), o.comm)
 }
 
 // BcastFloat32s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastFloat32s(x []float32, root int) {
+func (o *Communicator) BcastFloat32s(x []float32, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Float], C.int(root), o.comm)
 }
 
 // BcastFloat64s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastFloat64s(x []float64, root int) {
+func (o *Communicator) BcastFloat64s(x []float64, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Double], C.int(root), o.comm)
 }
 
 // BcastComplex128s broadcasts slice from root `root` to all other processors
-func (o Communicator) BcastComplex128s(x []complex128, root int) {
+func (o *Communicator) BcastComplex128s(x []complex128, root int) {
 	buf := unsafe.Pointer(&x[0])
 	C.MPI_Bcast(buf, C.int(len(x)), dataTypes[Complex], C.int(root), o.comm)
 }
 
 // ReduceBytes performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceBytes(dest, orig []byte, op Op, root int) error {
+func (o *Communicator) ReduceBytes(dest, orig []byte, op Op, root int) error {
 	d := Byte
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -331,7 +338,7 @@ func (o Communicator) ReduceBytes(dest, orig []byte, op Op, root int) error {
 
 // ReduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error {
+func (o *Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error {
 	d := Uint
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -344,7 +351,7 @@ func (o Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error 
 
 // ReduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
+func (o *Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
 	d := Int
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -357,7 +364,7 @@ func (o Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
 
 // ReduceUInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error {
+func (o *Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error {
 	d := Ulong
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -370,7 +377,7 @@ func (o Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error 
 
 // ReduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
+func (o *Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
 	d := Long
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -383,7 +390,7 @@ func (o Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
 
 // ReduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) error {
+func (o *Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) error {
 	d := Float
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -396,7 +403,7 @@ func (o Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) erro
 
 // ReduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) error {
+func (o *Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) error {
 	d := Double
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -409,7 +416,7 @@ func (o Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) erro
 
 // ReduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
 // Note: dest and orig must be different slices.
-func (o Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root int) error {
+func (o *Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root int) error {
 	d := Complex
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -422,7 +429,7 @@ func (o Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root int
 
 // AllreduceBytes performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error {
+func (o *Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error {
 	d := Byte
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -435,7 +442,7 @@ func (o Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error {
 
 // AllreduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) error {
+func (o *Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) error {
 	d := Uint
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -448,7 +455,7 @@ func (o Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) err
 
 // AllreduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) error {
+func (o *Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) error {
 	d := Int
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -461,7 +468,7 @@ func (o Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) error
 
 // AllreduceUint64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) error {
+func (o *Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) error {
 	d := Ulong
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -474,7 +481,7 @@ func (o Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) err
 
 // AllreduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) error {
+func (o *Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) error {
 	d := Long
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -487,7 +494,7 @@ func (o Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) error
 
 // AllreduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) error {
+func (o *Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) error {
 	d := Float
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -500,7 +507,7 @@ func (o Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) e
 
 // AllreduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) error {
+func (o *Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) error {
 	d := Double
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -513,7 +520,7 @@ func (o Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) e
 
 // AllreduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
 // Note: dest and orig must be different slices.
-func (o Communicator) AllreduceComplex128s(dest, orig []complex128, op Op, root int) error {
+func (o *Communicator) AllreduceComplex128s(dest, orig []complex128, op Op, root int) error {
 	d := Complex
 	if !isValidDataTypeForOp(d, op) {
 		return fmt.Errorf("DataType %v cannot be used with Operation %v", d, op)
@@ -525,13 +532,13 @@ func (o Communicator) AllreduceComplex128s(dest, orig []complex128, op Op, root 
 }
 
 // SendBytes sends values to processor toID with given tag
-func (o Communicator) SendBytes(vals []byte, toID int, tag int) {
+func (o *Communicator) SendBytes(vals []byte, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Byte], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocBytes receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocBytes(vals []byte, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocBytes(vals []byte, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 
@@ -540,7 +547,7 @@ func (o Communicator) RecvPreallocBytes(vals []byte, fromID int, tag int) Status
 }
 
 // MrecvPreallocBytes receives values from processor fromId with given tag with threading
-func (o Communicator) MrecvPreallocBytes(vals []byte, fromID int, tag int, msg C.MPI_Message) Status {
+func (o *Communicator) MrecvPreallocBytes(vals []byte, fromID int, tag int, msg C.MPI_Message) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 
@@ -549,7 +556,7 @@ func (o Communicator) MrecvPreallocBytes(vals []byte, fromID int, tag int, msg C
 }
 
 // RecvBytes returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
+func (o *Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
 	l := o.Probe(fromID, tag).GetCount(Byte)
 	buf := make([]byte, l)
 	status := o.RecvPreallocBytes(buf, fromID, tag)
@@ -557,7 +564,7 @@ func (o Communicator) RecvBytes(fromID int, tag int) ([]byte, Status) {
 }
 
 // MrecvBytes returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
+func (o *Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
 	runtime.LockOSThread()
 	pstatus, msg := o.Mprobe(fromID, tag)
 	l := pstatus.GetCount(Byte)
@@ -567,13 +574,13 @@ func (o Communicator) MrecvBytes(fromID int, tag int) ([]byte, Status) {
 }
 
 // SendUint32s sends values to processor toID with given tag
-func (o Communicator) SendUInt32s(vals []uint32, toID int, tag int) {
+func (o *Communicator) SendUInt32s(vals []uint32, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Uint], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocUint32s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocUint32s(vals []uint32, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocUint32s(vals []uint32, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Uint], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -582,7 +589,7 @@ func (o Communicator) RecvPreallocUint32s(vals []uint32, fromID int, tag int) St
 }
 
 // RecvUint32s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvUint32s(fromID int, tag int) ([]uint32, Status) {
+func (o *Communicator) RecvUint32s(fromID int, tag int) ([]uint32, Status) {
 	l := o.Probe(fromID, tag).GetCount(Uint)
 	buf := make([]uint32, l)
 	status := o.RecvPreallocUint32s(buf, fromID, tag)
@@ -590,13 +597,13 @@ func (o Communicator) RecvUint32s(fromID int, tag int) ([]uint32, Status) {
 }
 
 // SendInt32s sends values to processor toID with given tag
-func (o Communicator) SendInt32s(vals []int32, toID int, tag int) {
+func (o *Communicator) SendInt32s(vals []int32, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Int], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocInt32s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocInt32s(vals []int32, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocInt32s(vals []int32, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Int], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -604,7 +611,7 @@ func (o Communicator) RecvPreallocInt32s(vals []int32, fromID int, tag int) Stat
 }
 
 // RecvInt32s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvInt32s(fromID int, tag int) ([]int32, Status) {
+func (o *Communicator) RecvInt32s(fromID int, tag int) ([]int32, Status) {
 	l := o.Probe(fromID, tag).GetCount(Int)
 	buf := make([]int32, l)
 	status := o.RecvPreallocInt32s(buf, fromID, tag)
@@ -612,13 +619,13 @@ func (o Communicator) RecvInt32s(fromID int, tag int) ([]int32, Status) {
 }
 
 // SendUint64s sends values to processor toID with given tag
-func (o Communicator) SendUint64s(vals []uint64, toID int, tag int) {
+func (o *Communicator) SendUint64s(vals []uint64, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Ulong], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocUint64s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocUint64s(vals []uint64, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocUint64s(vals []uint64, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Ulong], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -626,7 +633,7 @@ func (o Communicator) RecvPreallocUint64s(vals []uint64, fromID int, tag int) St
 }
 
 // RecvUint64s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvUint64s(fromID int, tag int) ([]uint64, Status) {
+func (o *Communicator) RecvUint64s(fromID int, tag int) ([]uint64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Ulong)
 	buf := make([]uint64, l)
 	status := o.RecvPreallocUint64s(buf, fromID, tag)
@@ -634,13 +641,13 @@ func (o Communicator) RecvUint64s(fromID int, tag int) ([]uint64, Status) {
 }
 
 // SendInt64s sends values to processor toID with given tag
-func (o Communicator) SendInt64s(vals []int64, toID int, tag int) {
+func (o *Communicator) SendInt64s(vals []int64, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Long], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocInt64s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocInt64s(vals []int64, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocInt64s(vals []int64, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Long], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -648,7 +655,7 @@ func (o Communicator) RecvPreallocInt64s(vals []int64, fromID int, tag int) Stat
 }
 
 // RecvInt64s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvInt64s(fromID int, tag int) ([]int64, Status) {
+func (o *Communicator) RecvInt64s(fromID int, tag int) ([]int64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Long)
 	buf := make([]int64, l)
 	status := o.RecvPreallocInt64s(buf, fromID, tag)
@@ -656,13 +663,13 @@ func (o Communicator) RecvInt64s(fromID int, tag int) ([]int64, Status) {
 }
 
 // SendFloat64s sends values to processor toID with given tag
-func (o Communicator) SendFloat64s(vals []float64, toID int, tag int) {
+func (o *Communicator) SendFloat64s(vals []float64, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Double], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocFloat64s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocFloat64s(vals []float64, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocFloat64s(vals []float64, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Double], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -670,7 +677,7 @@ func (o Communicator) RecvPreallocFloat64s(vals []float64, fromID int, tag int) 
 }
 
 // RecvFloat64s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvFloat64s(fromID int, tag int) ([]float64, Status) {
+func (o *Communicator) RecvFloat64s(fromID int, tag int) ([]float64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Double)
 	buf := make([]float64, l)
 	status := o.RecvPreallocFloat64s(buf, fromID, tag)
@@ -678,13 +685,13 @@ func (o Communicator) RecvFloat64s(fromID int, tag int) ([]float64, Status) {
 }
 
 // SendComplex128s sends values to processor toID with given tag
-func (o Communicator) SendComplex128s(vals []complex128, toID int, tag int) {
+func (o *Communicator) SendComplex128s(vals []complex128, toID int, tag int) {
 	buf := unsafe.Pointer(&vals[0])
 	C.MPI_Send(buf, C.int(len(vals)), dataTypes[Complex], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvPreallocComplex128s receives values from processor fromId with given tag
-func (o Communicator) RecvPreallocComplex128s(vals []complex128, fromID int, tag int) Status {
+func (o *Communicator) RecvPreallocComplex128s(vals []complex128, fromID int, tag int) Status {
 	buf := unsafe.Pointer(&vals[0])
 	status := Status{}
 	C.MPI_Recv(buf, C.int(len(vals)), dataTypes[Complex], C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
@@ -692,7 +699,7 @@ func (o Communicator) RecvPreallocComplex128s(vals []complex128, fromID int, tag
 }
 
 // RecvComplex128s returns a slice of bytes received from processor fromId with given tag.
-func (o Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Status) {
+func (o *Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Status) {
 	l := o.Probe(fromID, tag).GetCount(Complex)
 	buf := make([]complex128, l)
 	status := o.RecvPreallocComplex128s(buf, fromID, tag)
@@ -701,13 +708,13 @@ func (o Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Status
 
 //////////////////////////////////////////////////////////////////////////////
 // SendByte sends one value to processor toID with given tag
-func (o Communicator) SendByte(v byte, toID int, tag int) {
+func (o *Communicator) SendByte(v byte, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Byte], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvByte receives one value from processor fromId with given tag
-func (o Communicator) RecvByte(fromID, tag int) (byte, Status) {
+func (o *Communicator) RecvByte(fromID, tag int) (byte, Status) {
 	var v byte
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -716,13 +723,13 @@ func (o Communicator) RecvByte(fromID, tag int) (byte, Status) {
 }
 
 // SendUint sends one value to processor toID with given tag
-func (o Communicator) SendUint32(v uint32, toID int, tag int) {
+func (o *Communicator) SendUint32(v uint32, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Uint], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvUint receives one value from processor fromId with given tag
-func (o Communicator) RecvUint32(fromID, tag int) (uint32, Status) {
+func (o *Communicator) RecvUint32(fromID, tag int) (uint32, Status) {
 	var v uint32
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -731,13 +738,13 @@ func (o Communicator) RecvUint32(fromID, tag int) (uint32, Status) {
 }
 
 // SendInt sends one value to processor toID with given tag
-func (o Communicator) SendInt32(v int32, toID int, tag int) {
+func (o *Communicator) SendInt32(v int32, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Int], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvInt receives one value from processor fromId with given tag
-func (o Communicator) RecvInt32(fromID, tag int) (int32, Status) {
+func (o *Communicator) RecvInt32(fromID, tag int) (int32, Status) {
 	var v int32
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -746,13 +753,13 @@ func (o Communicator) RecvInt32(fromID, tag int) (int32, Status) {
 }
 
 // SendUint32 sends one value to processor toID with given tag
-func (o Communicator) SendUint64(v uint64, toID int, tag int) {
+func (o *Communicator) SendUint64(v uint64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Ulong], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvUlong receives one value from processor fromId with given tag
-func (o Communicator) RecvUint64(fromID, tag int) (uint64, Status) {
+func (o *Communicator) RecvUint64(fromID, tag int) (uint64, Status) {
 	var v uint64
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -761,13 +768,13 @@ func (o Communicator) RecvUint64(fromID, tag int) (uint64, Status) {
 }
 
 // SendLong sends one value to processor toID with given tag
-func (o Communicator) SendInt64(v int64, toID int, tag int) {
+func (o *Communicator) SendInt64(v int64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Long], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvLong receives one value from processor fromId with given tag
-func (o Communicator) RecvInt64(fromID, tag int) (int64, Status) {
+func (o *Communicator) RecvInt64(fromID, tag int) (int64, Status) {
 	var v int64
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -776,13 +783,13 @@ func (o Communicator) RecvInt64(fromID, tag int) (int64, Status) {
 }
 
 // SendDouble sends one value to processor toID with given tag
-func (o Communicator) SendFloat64(v float64, toID int, tag int) {
+func (o *Communicator) SendFloat64(v float64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Double], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvDouble receives one value from processor fromId with given tag
-func (o Communicator) RecvFloat64(fromID, tag int) (float64, Status) {
+func (o *Communicator) RecvFloat64(fromID, tag int) (float64, Status) {
 	var v float64
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -791,13 +798,13 @@ func (o Communicator) RecvFloat64(fromID, tag int) (float64, Status) {
 }
 
 // SendComplex128 sends one value to processor toID (integer version)
-func (o Communicator) SendComplex128(v complex128, toID, tag int) {
+func (o *Communicator) SendComplex128(v complex128, toID, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Complex], C.int(toID), C.int(tag), o.comm)
 }
 
 // RecvComplex128 receives one value from processor fromId
-func (o Communicator) RecvComplex128(fromID, tag int) (complex128, Status) {
+func (o *Communicator) RecvComplex128(fromID, tag int) (complex128, Status) {
 	var v complex128
 	buf := unsafe.Pointer(&v)
 	status := Status{}
@@ -807,22 +814,22 @@ func (o Communicator) RecvComplex128(fromID, tag int) (complex128, Status) {
 }
 
 // SendString is a convenience function to send one string to processor toID with given tag.
-func (o Communicator) SendString(s string, toID, tag int) {
+func (o *Communicator) SendString(s string, toID, tag int) {
 	o.SendBytes([]byte(s), toID, tag)
 }
 
 // RecvString is a convenience function to receive a string from processor fromId with given tag.
-func (o Communicator) RecvString(fromID, tag int) (string, Status) {
+func (o *Communicator) RecvString(fromID, tag int) (string, Status) {
 	recv_bytes, status := o.RecvBytes(fromID, tag)
 	return string(recv_bytes), status
 }
 
 // IProbe will return a boolean indicating whether a message is
 // waiting from a source with a given tag, and a status structure.
-func (o Communicator) Iprobe(source, tag int) (bool, Status) {
+func (o *Communicator) Iprobe(source, tag int) (bool, *Status) {
 	var s Status
 	var b C.int
 
 	C.MPI_Iprobe(C.int(source), C.int(tag), o.comm, &b, &(s.mpiStatus))
-	return b == 1, s
+	return b == 1, &s
 }

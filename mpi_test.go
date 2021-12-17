@@ -194,7 +194,7 @@ func chkArraysEqualComplex128(a, b []complex128) bool {
 	return true
 }
 
-func bcast(A Communicator, t *testing.T) func(*testing.T) {
+func bcast(A *Communicator, t *testing.T) func(*testing.T) {
 	return func(t *testing.T) {
 		root := 3
 		t.Run("byte", func(t *testing.T) {
@@ -320,7 +320,7 @@ func bcast(A Communicator, t *testing.T) func(*testing.T) {
 	}
 }
 
-func reduce(A Communicator, t *testing.T) func(*testing.T) {
+func reduce(A *Communicator, t *testing.T) func(*testing.T) {
 	root := 3
 	testNames := [...]string{
 		"sum",
@@ -645,7 +645,7 @@ func reduce(A Communicator, t *testing.T) func(*testing.T) {
 		}
 	}
 }
-func allreduce(A Communicator, t *testing.T) func(*testing.T) {
+func allreduce(A *Communicator, t *testing.T) func(*testing.T) {
 	root := 3
 	testNames := [...]string{
 		"sum",
@@ -1131,15 +1131,15 @@ func TestMPI(t *testing.T) {
 				A.SendInt64s(vals, k, 6)
 			}
 		} else {
-			b, _ := A.Iprobe(3, MPI_ANY_TAG)
+			b, _ := A.Iprobe(3, AnyTag)
 			if !b {
 				t.Errorf("Status: received %v, expected true", b)
 			}
-			b, _ = A.Iprobe(MPI_ANY_SOURCE, 6)
+			b, _ = A.Iprobe(AnySource, 6)
 			if !b {
 				t.Errorf("Status: received %v, expected true", b)
 			}
-			b, _ = A.Iprobe(MPI_ANY_SOURCE, MPI_ANY_TAG)
+			b, _ = A.Iprobe(AnySource, AnyTag)
 			if !b {
 				t.Errorf("Status: received %v, expected true", b)
 			}
