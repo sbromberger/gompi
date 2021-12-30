@@ -1,4 +1,4 @@
-![CI](https://github.com/sbromberger/gompi/actions/workflows/ci.yml/badge.svg)
+[![CI](https://github.com/sbromberger/gompi/actions/workflows/ci.yml/badge.svg)](https://github.com/sbromberger/gompi/actions/workflows/ci.yml)
 
 GoMPI: Message Passing Interface for Parallel Computing
 
