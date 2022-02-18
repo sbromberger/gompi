@@ -335,7 +335,8 @@ func (o *Communicator) ReduceBytes(dest, orig []byte, op Op, root int) error {
 	return nil
 }
 
-// ReduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceUint32s performs a distributed reduce operation on `uint32`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error {
 	d := Uint
@@ -348,7 +349,8 @@ func (o *Communicator) ReduceUint32s(dest, orig []uint32, op Op, root int) error
 	return nil
 }
 
-// ReduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceInt32s performs a distributed reduce operation on `int32`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
 	d := Int
@@ -361,7 +363,8 @@ func (o *Communicator) ReduceInt32s(dest, orig []int32, op Op, root int) error {
 	return nil
 }
 
-// ReduceUInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceUInt64s performs a distributed reduce operation on `uint64`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error {
 	d := Ulong
@@ -374,7 +377,8 @@ func (o *Communicator) ReduceUint64s(dest, orig []uint64, op Op, root int) error
 	return nil
 }
 
-// ReduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceInt64s performs a distributed reduce operation on `int64`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
 	d := Long
@@ -387,7 +391,8 @@ func (o *Communicator) ReduceInt64s(dest, orig []int64, op Op, root int) error {
 	return nil
 }
 
-// ReduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceFloat32s performs a distributed reduce operation on `float32`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) error {
 	d := Float
@@ -400,7 +405,8 @@ func (o *Communicator) ReduceFloat32s(dest, orig []float32, op Op, root int) err
 	return nil
 }
 
-// ReduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceFloat64s performs a distributed reduce operation on `float64`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) error {
 	d := Double
@@ -413,7 +419,8 @@ func (o *Communicator) ReduceFloat64s(dest, orig []float64, op Op, root int) err
 	return nil
 }
 
-// ReduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on the given root.
+// ReduceComplex128s performs a distributed reduce operation on `complex128`s, accumulating
+// the operation on the given root.
 // Note: dest and orig must be different slices.
 func (o *Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root int) error {
 	d := Complex
@@ -426,7 +433,8 @@ func (o *Communicator) ReduceComplex128s(dest, orig []complex128, op Op, root in
 	return nil
 }
 
-// AllreduceBytes performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceBytes performs a distributed allreduce operation on bytes, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error {
 	d := Byte
@@ -439,7 +447,8 @@ func (o *Communicator) AllreduceBytes(dest, orig []byte, op Op, root int) error 
 	return nil
 }
 
-// AllreduceUint32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceUint32s performs a distributed allreduce operation on `int32`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) error {
 	d := Uint
@@ -452,7 +461,8 @@ func (o *Communicator) AllreduceUint32s(dest, orig []uint32, op Op, root int) er
 	return nil
 }
 
-// AllreduceInt32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceInt32s performs a distributed allreduce operation on `int32`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) error {
 	d := Int
@@ -465,7 +475,8 @@ func (o *Communicator) AllreduceInt32s(dest, orig []int32, op Op, root int) erro
 	return nil
 }
 
-// AllreduceUint64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceUint64s performs a distributed allreduce operation on `int64`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) error {
 	d := Ulong
@@ -478,7 +489,8 @@ func (o *Communicator) AllreduceUint64s(dest, orig []uint64, op Op, root int) er
 	return nil
 }
 
-// AllreduceInt64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceInt64s performs a distributed allreduce operation on `int64`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) error {
 	d := Long
@@ -491,7 +503,8 @@ func (o *Communicator) AllreduceInt64s(dest, orig []int64, op Op, root int) erro
 	return nil
 }
 
-// AllreduceFloat32s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceFloat32s performs a distributed allreduce operation on `float32`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) error {
 	d := Float
@@ -504,7 +517,8 @@ func (o *Communicator) AllreduceFloat32s(dest, orig []float32, op Op, root int) 
 	return nil
 }
 
-// AllreduceFloat64s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceFloat64s performs a distributed allreduce operation on `float64`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) error {
 	d := Double
@@ -517,7 +531,8 @@ func (o *Communicator) AllreduceFloat64s(dest, orig []float64, op Op, root int) 
 	return nil
 }
 
-// AllreduceComplex128s performs a distributed reduce operation on bytes, accumulating the operation on all roots.
+// AllreduceComplex128s performs a distributed allreduce operation on `complex128`s, accumulating
+// the operation on all roots.
 // Note: dest and orig must be different slices.
 func (o *Communicator) AllreduceComplex128s(dest, orig []complex128, op Op, root int) error {
 	d := Complex
@@ -609,7 +624,7 @@ func (o *Communicator) RecvPreallocInt32s(vals []int32, fromID int, tag int) Sta
 	return status
 }
 
-// RecvInt32s returns a slice of bytes received from processor fromId with given tag.
+// RecvInt32s returns a slice of `int32`s received from processor fromId with given tag.
 func (o *Communicator) RecvInt32s(fromID int, tag int) ([]int32, Status) {
 	l := o.Probe(fromID, tag).GetCount(Int)
 	buf := make([]int32, l)
@@ -631,7 +646,7 @@ func (o *Communicator) RecvPreallocUint64s(vals []uint64, fromID int, tag int) S
 	return status
 }
 
-// RecvUint64s returns a slice of bytes received from processor fromId with given tag.
+// RecvUint64s returns a slice of `uint64`s received from processor fromId with given tag.
 func (o *Communicator) RecvUint64s(fromID int, tag int) ([]uint64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Ulong)
 	buf := make([]uint64, l)
@@ -653,7 +668,7 @@ func (o *Communicator) RecvPreallocInt64s(vals []int64, fromID int, tag int) Sta
 	return status
 }
 
-// RecvInt64s returns a slice of bytes received from processor fromId with given tag.
+// RecvInt64s returns a slice of `int64`s received from processor fromId with given tag.
 func (o *Communicator) RecvInt64s(fromID int, tag int) ([]int64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Long)
 	buf := make([]int64, l)
@@ -675,7 +690,7 @@ func (o *Communicator) RecvPreallocFloat64s(vals []float64, fromID int, tag int)
 	return status
 }
 
-// RecvFloat64s returns a slice of bytes received from processor fromId with given tag.
+// RecvFloat64s returns a slice of `float64`s received from processor fromId with given tag.
 func (o *Communicator) RecvFloat64s(fromID int, tag int) ([]float64, Status) {
 	l := o.Probe(fromID, tag).GetCount(Double)
 	buf := make([]float64, l)
@@ -697,7 +712,7 @@ func (o *Communicator) RecvPreallocComplex128s(vals []complex128, fromID int, ta
 	return status
 }
 
-// RecvComplex128s returns a slice of bytes received from processor fromId with given tag.
+// RecvComplex128s returns a slice of `complex128`s received from processor fromId with given tag.
 func (o *Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Status) {
 	l := o.Probe(fromID, tag).GetCount(Complex)
 	buf := make([]complex128, l)
@@ -706,13 +721,13 @@ func (o *Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Statu
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// SendByte sends one value to processor toID with given tag
+// SendByte sends one byte to processor toID with given tag
 func (o *Communicator) SendByte(v byte, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Byte], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvByte receives one value from processor fromId with given tag
+// RecvByte receives one byte from processor fromId with given tag
 func (o *Communicator) RecvByte(fromID, tag int) (byte, Status) {
 	var v byte
 	buf := unsafe.Pointer(&v)
@@ -721,13 +736,13 @@ func (o *Communicator) RecvByte(fromID, tag int) (byte, Status) {
 	return v, status
 }
 
-// SendUint sends one value to processor toID with given tag
+// SendUint sends one `uint` to processor toID with given tag
 func (o *Communicator) SendUint32(v uint32, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Uint], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvUint receives one value from processor fromId with given tag
+// RecvUint receives one `uint` from processor fromId with given tag
 func (o *Communicator) RecvUint32(fromID, tag int) (uint32, Status) {
 	var v uint32
 	buf := unsafe.Pointer(&v)
@@ -736,13 +751,13 @@ func (o *Communicator) RecvUint32(fromID, tag int) (uint32, Status) {
 	return v, status
 }
 
-// SendInt sends one value to processor toID with given tag
+// SendInt sends one `int` to processor toID with given tag
 func (o *Communicator) SendInt32(v int32, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Int], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvInt receives one value from processor fromId with given tag
+// RecvInt receives one `int` from processor fromId with given tag
 func (o *Communicator) RecvInt32(fromID, tag int) (int32, Status) {
 	var v int32
 	buf := unsafe.Pointer(&v)
@@ -751,13 +766,13 @@ func (o *Communicator) RecvInt32(fromID, tag int) (int32, Status) {
 	return v, status
 }
 
-// SendUint32 sends one value to processor toID with given tag
+// SendUint32 sends one `uint32` to processor toID with given tag
 func (o *Communicator) SendUint64(v uint64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Ulong], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvUlong receives one value from processor fromId with given tag
+// RecvUlong receives one `uint32` from processor fromId with given tag
 func (o *Communicator) RecvUint64(fromID, tag int) (uint64, Status) {
 	var v uint64
 	buf := unsafe.Pointer(&v)
@@ -766,13 +781,13 @@ func (o *Communicator) RecvUint64(fromID, tag int) (uint64, Status) {
 	return v, status
 }
 
-// SendLong sends one value to processor toID with given tag
+// SendLong sends one `int64` to processor toID with given tag
 func (o *Communicator) SendInt64(v int64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Long], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvLong receives one value from processor fromId with given tag
+// RecvLong receives one `int64` from processor fromId with given tag
 func (o *Communicator) RecvInt64(fromID, tag int) (int64, Status) {
 	var v int64
 	buf := unsafe.Pointer(&v)
@@ -781,13 +796,13 @@ func (o *Communicator) RecvInt64(fromID, tag int) (int64, Status) {
 	return v, status
 }
 
-// SendDouble sends one value to processor toID with given tag
+// SendDouble sends one `float64` to processor toID with given tag
 func (o *Communicator) SendFloat64(v float64, toID int, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Double], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvDouble receives one value from processor fromId with given tag
+// RecvDouble receives one `float64` from processor fromId with given tag
 func (o *Communicator) RecvFloat64(fromID, tag int) (float64, Status) {
 	var v float64
 	buf := unsafe.Pointer(&v)
@@ -796,13 +811,13 @@ func (o *Communicator) RecvFloat64(fromID, tag int) (float64, Status) {
 	return v, status
 }
 
-// SendComplex128 sends one value to processor toID (integer version)
+// SendComplex128 sends one `complex128` to processor toID (integer version)
 func (o *Communicator) SendComplex128(v complex128, toID, tag int) {
 	buf := unsafe.Pointer(&v)
 	C.MPI_Send(buf, 1, dataTypes[Complex], C.int(toID), C.int(tag), o.comm)
 }
 
-// RecvComplex128 receives one value from processor fromId
+// RecvComplex128 receives one `complex128` from processor fromId
 func (o *Communicator) RecvComplex128(fromID, tag int) (complex128, Status) {
 	var v complex128
 	buf := unsafe.Pointer(&v)
