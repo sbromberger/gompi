@@ -116,7 +116,7 @@ func (o *Communicator) GetAttr(attribute int) (int, bool, error) {
 
 	x := C.MPI_Comm_get_attr(o.comm, C.int(attribute), unsafe.Pointer(&n), &found)
 	if x != C.MPI_SUCCESS {
-		return int(n), int(found) == 1, fmt.Errorf("GetAttr returned error %d\n", x)
+		return int(n), int(found) == 1, fmt.Errorf("GetAttr returned error %d", x)
 	}
 	return int(n), int(found) == 1, nil
 }
@@ -124,7 +124,7 @@ func (o *Communicator) GetAttr(attribute int) (int, bool, error) {
 func (o *Communicator) GetMaxTag() (int, error) {
 	x, found, err := o.GetAttr(C.MPI_TAG_UB)
 	if !found {
-		return -1, fmt.Errorf("No max tag value found")
+		return -1, fmt.Errorf("no max tag value found")
 	}
 	if err != nil {
 		return -1, err
