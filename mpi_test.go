@@ -194,13 +194,13 @@ func chkArraysEqualComplex128(a, b []complex128) bool {
 	return true
 }
 
-func bcast(A *Communicator, t *testing.T) func(*testing.T) {
+func bcast(A *Communicator) func(*testing.T) {
 	return func(t *testing.T) {
 		root := 3
 		t.Run("byte", func(t *testing.T) {
 			b := make([]byte, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(b); i++ {
+				for i := range b {
 					b[i] = byte(1 + i)
 				}
 			}
@@ -320,7 +320,7 @@ func bcast(A *Communicator, t *testing.T) func(*testing.T) {
 	}
 }
 
-func reduce(A *Communicator, t *testing.T) func(*testing.T) {
+func reduce(A *Communicator) func(*testing.T) {
 	root := 3
 	testNames := [...]string{
 		"sum",
@@ -645,7 +645,7 @@ func reduce(A *Communicator, t *testing.T) func(*testing.T) {
 		}
 	}
 }
-func allreduce(A *Communicator, t *testing.T) func(*testing.T) {
+func allreduce(A *Communicator) func(*testing.T) {
 	root := 3
 	testNames := [...]string{
 		"sum",
@@ -961,11 +961,11 @@ func TestMPI(t *testing.T) {
 	// }
 	// B := NewCommunicator([]int{0, 1, 2, 3})
 
-	t.Run("Bcast", bcast(A, t))
+	t.Run("Bcast", bcast(A))
 	A.Barrier()
-	t.Run("Reduce", reduce(A, t))
+	t.Run("Reduce", reduce(A))
 	A.Barrier()
-	t.Run("Allreduce", allreduce(A, t))
+	t.Run("Allreduce", allreduce(A))
 	A.Barrier()
 	// t.Run("ReduceSumFloat64s", func(t *testing.T) {
 	// 	root := 3

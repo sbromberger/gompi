@@ -18,7 +18,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
     - name: Install Stringer
-      run: go get golang.org/x/tools/cmd/stringer
+      run: go install golang.org/x/tools/cmd/stringer@latest
     - name: Build and Install
       run: make install
     - name: Test
