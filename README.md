@@ -18,33 +18,35 @@ GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with a
 
 ## Performance
 
-The latency benchmarks are as follows (note: the Go benchmark does not test a message size of zero bytes):
+Note: latency benchmarks updated August 2025.
 
-| message size (bytes) | GoMPI (µs) | OSU MPI Latency Test v5.8 (µs) |
+OSU bechmarks run using `mpirun -n 2 ./osu_latency -i 1000 -x 200` with datatype = `MPI_Char`.
+GoMPI benchmarks run using `mpirun -n 2 go run latency.go`.
+
+| message size (bytes) | GoMPI (µs) | OSU MPI Latency Test v7.5 (µs) |
 |---|---|---|
-| 0 | n/a  | 0.36 |
-| 1 | 0.45 | 0.33 |
-| 2 | 0.45 | 0.32 |
-| 4 | 0.42 | 0.31 |
-| 8 | 0.45 | 0.30 |
-| 16 | 0.43 | 0.32 |
-| 32 | 0.43 | 0.32 |
-| 64 | 0.43 | 0.32 |
-| 128 | 0.45 | 0.35 |
-| 256 | 0.47 | 0.37 |
-| 512 | 0.60 | 0.41 |
-| 1024 | 0.66 | 0.34 |
-| 2048 | 0.74 | 0.45 |
-| 4096 | 2.01 | 1.51 |
-| 8192 | 2.75 | 1.82 |
-| 16384 | 3.61 | 2.36 |
-| 32768 | 4.83 | 3.32 |
-| 65536 | 9.24 | 4.96 |
-| 131072 | 17.15 |  10.53 |
-| 262144 | 31.09 | 23.07 |
-| 524288 | 57.01 | 43.78 |
-| 1048576 | 117.72 | 84.43 |
-| 2097152 | 235.34 | 220.47 |
-| 4194304 | 599.43 | 619.64 |
+| 1 | 0.16 | 0.11 |
+| 2 | 0.18 | 0.11 |
+| 4 | 0.16 | 0.11 |
+| 8 | 0.17 | 0.11 |
+| 16 | 0.17 | 0.11 |
+| 32 | 0.17 | 0.11 |
+| 64 | 0.17 | 0.12 |
+| 128 | 0.19 | 0.13 |
+| 256 | 0.19 | 0.16 |
+| 512 | 0.28 | 0.26 |
+| 1024 | 0.29 | 0.28 |
+| 2048 | 0.34 | 0.35 |
+| 4096 | 0.76 | 0.77 |
+| 8192 | 0.92 | 0.88 |
+| 16384 | 1.28 | 1.10 |
+| 32768 | 1.96 | 1.45 |
+| 65536 | 3.07 | 2.59 |
+| 131072 | 4.48 |  4.98 |
+| 262144 | 7.71 | 7.64 |
+| 524288 | 13.71 | 13.25 |
+| 1048576 | 25.99 | 25.25 |
+| 2097152 | 56.97 | 49.65 |
+| 4194304 | 140.32 | 244.79 |
 
 Benchmark code may be found in `cmd/latency.go`.
