@@ -74,6 +74,7 @@ func setSliceFloat32(x []float32, rank int, offset float32) {
 		}
 	}
 }
+
 func setSliceFloat64(x []float64, rank int, offset float64) {
 	for i := 0; i < len(x); i++ {
 		if i == rank {
@@ -204,7 +205,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					b[i] = byte(1 + i)
 				}
 			}
-			var exp = []byte{1, 2, 3, 4}
+			exp := []byte{1, 2, 3, 4}
 			A.BcastBytes(b, root)
 			if !chkArraysEqualByte(b, exp) {
 				t.Errorf("received %v, expected %v", b, exp)
@@ -219,7 +220,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					u32[i] = uint32(1 + i)
 				}
 			}
-			var exp = []uint32{1, 2, 3, 4}
+			exp := []uint32{1, 2, 3, 4}
 			A.BcastUint32s(u32, root)
 			if !chkArraysEqualUint32(u32, exp) {
 				t.Errorf("received %v, expected %v", u32, exp)
@@ -234,12 +235,11 @@ func bcast(A *Communicator) func(*testing.T) {
 					i32[i] = int32(1 + i)
 				}
 			}
-			var exp = []int32{1, 2, 3, 4}
+			exp := []int32{1, 2, 3, 4}
 			A.BcastInt32s(i32, root)
 			if !chkArraysEqualInt32(i32, exp) {
 				t.Errorf("received %v, expected %v", i32, exp)
 			}
-
 		})
 		A.Barrier()
 
@@ -265,7 +265,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					i64[i] = int64(1 + i)
 				}
 			}
-			var exp = []int64{1, 2, 3, 4}
+			exp := []int64{1, 2, 3, 4}
 			A.BcastInt64s(i64, root)
 			if !chkArraysEqualInt64(i64, exp) {
 				t.Errorf("received %v, expected %v", i64, exp)
@@ -280,7 +280,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					f32[i] = float32(1 + i)
 				}
 			}
-			var exp = []float32{1, 2, 3, 4}
+			exp := []float32{1, 2, 3, 4}
 			A.BcastFloat32s(f32, root)
 			if !chkArraysEqualFloat32(f32, exp) {
 				t.Errorf("received %v, expected %v", f32, exp)
@@ -295,7 +295,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					f64[i] = float64(1 + i)
 				}
 			}
-			var exp = []float64{1, 2, 3, 4}
+			exp := []float64{1, 2, 3, 4}
 			A.BcastFloat64s(f64, root)
 			if !chkArraysEqualFloat64(f64, exp) {
 				t.Errorf("received %v, expected %v", f64, exp)
@@ -310,7 +310,7 @@ func bcast(A *Communicator) func(*testing.T) {
 					c128[i] = complex(float64(1+i), float64(i))
 				}
 			}
-			var exp = []complex128{complex(1, 0), complex(2, 1), complex(3, 2), complex(4, 3)}
+			exp := []complex128{complex(1, 0), complex(2, 1), complex(3, 2), complex(4, 3)}
 			A.BcastComplex128s(c128, root)
 			if !chkArraysEqualComplex128(c128, exp) {
 				t.Errorf("received %v, expected %v", c128, exp)
@@ -609,7 +609,7 @@ func reduce(A *Communicator) func(*testing.T) {
 						{}, // min - not tested
 						{}, // max - not tested
 
-						{(2.2 - 1.8i), (4.4 - 3.6i), (6.6 - 5.4i), (8.8 - 7.199999999999999i)}, //prod
+						{(2.2 - 1.8i), (4.4 - 3.6i), (6.6 - 5.4i), (8.8 - 7.199999999999999i)}, // prod
 						{}, // prod - not tested
 						{}, // land - not tested
 						{}, // lor - not tested
@@ -645,6 +645,7 @@ func reduce(A *Communicator) func(*testing.T) {
 		}
 	}
 }
+
 func allreduce(A *Communicator) func(*testing.T) {
 	root := 3
 	testNames := [...]string{
@@ -913,7 +914,7 @@ func allreduce(A *Communicator) func(*testing.T) {
 						{}, // min - not tested
 						{}, // max - not tested
 
-						{(2.2 - 1.8i), (4.4 - 3.6i), (6.6 - 5.4i), (8.8 - 7.199999999999999i)}, //prod
+						{(2.2 - 1.8i), (4.4 - 3.6i), (6.6 - 5.4i), (8.8 - 7.199999999999999i)}, // prod
 						{}, // prod - not tested
 						{}, // land - not tested
 						{}, // lor - not tested

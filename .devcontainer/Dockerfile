@@ -1,6 +1,5 @@
 # FROM mcr.microsoft.com/devcontainers/cpp:1-ubuntu-24.04
-FROM mcr.microsoft.com/devcontainers/go:1-1.24-bookworm
-
+FROM mcr.microsoft.com/devcontainers/go
 # ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="none"
 
 # Optionally install the cmake for vcpkg
@@ -20,6 +19,16 @@ WORKDIR /tmp/osu-micro-benchmarks-7.5.1
 RUN ./configure CC=/usr/bin/mpicc CXX=/usr/bin/mpicxx
 RUN make && make install
 RUN go install golang.org/x/tools/cmd/stringer@latest
+
+# Install gofumpt for stricter formatting
+RUN go install mvdan.cc/gofumpt@latest
+
+# Remove ESLint extension if it exists in the base image
+RUN find /vscode -name "*eslint*" -type d -exec rm -rf {} + 2>/dev/null || true
+RUN find /home/vscode -name "*eslint*" -type d -exec rm -rf {} + 2>/dev/null || true
+
+# Fix permissions for Go module cache
+RUN chown -R vscode:golang /go/pkg
 
 
 # RUN update-alternatives --install /usr/bin/clangd clangd /usr/bin/clangd-19 100
