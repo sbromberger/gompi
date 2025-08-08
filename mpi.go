@@ -169,7 +169,8 @@ func (s *Status) GetTag() int {
 }
 
 // IsOn tells whether MPI is on or not
-//  NOTE: this returns true even after Stop
+//
+//	NOTE: this returns true even after Stop
 func IsOn() bool {
 	var flag C.int
 	C.MPI_Initialized(&flag)
@@ -220,8 +221,9 @@ type Communicator struct {
 }
 
 // NewCommunicator creates a new communicator or returns the World communicator
-//   ranks -- World indices of processors in this Communicator.
-//            use nil or empty to get the World Communicator
+//
+//	ranks -- World indices of processors in this Communicator.
+//	         use nil or empty to get the World Communicator
 func NewCommunicator(ranks []int) *Communicator {
 	var o Communicator
 	if len(ranks) == 0 {
@@ -720,7 +722,7 @@ func (o *Communicator) RecvComplex128s(fromID int, tag int) ([]complex128, Statu
 	return buf, status
 }
 
-//////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////
 // SendByte sends one byte to processor toID with given tag
 func (o *Communicator) SendByte(v byte, toID int, tag int) {
 	buf := unsafe.Pointer(&v)

@@ -22,12 +22,12 @@ func main() {
 	}
 	myId := o.Rank() // line 49
 
-	for size := 1; size <= maxsize; size *=2 {
+	for size := 1; size <= maxsize; size *= 2 {
 		var t_total float64
 		s_buf := []byte(strings.Repeat("a", size))
 		r_buf := []byte(strings.Repeat("b", size))
 		o.Barrier()
-		for iter := range (warmup + iterations) {
+		for iter := range warmup + iterations {
 			notime := iter < warmup
 
 			switch myId {
