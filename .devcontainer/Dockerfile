@@ -1,5 +1,6 @@
 # FROM mcr.microsoft.com/devcontainers/cpp:1-ubuntu-24.04
-FROM mcr.microsoft.com/devcontainers/go:1-1.24-bookworm
+# FROM mcr.microsoft.com/devcontainers/go
+FROM golang:1.26.1
 
 # ARG REINSTALL_CMAKE_VERSION_FROM_SOURCE="none"
 

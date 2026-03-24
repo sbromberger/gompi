@@ -16,7 +16,7 @@ const (
 )
 
 func setSliceByte(x []byte, rank int, offset byte) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = byte(rank+1) + offset
 		} else {
@@ -26,7 +26,7 @@ func setSliceByte(x []byte, rank int, offset byte) {
 }
 
 func setSliceUint32(x []uint32, rank int, offset uint32) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = uint32(rank+1) + offset
 		} else {
@@ -36,7 +36,7 @@ func setSliceUint32(x []uint32, rank int, offset uint32) {
 }
 
 func setSliceInt32(x []int32, rank int, offset int32) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = int32(rank+1) + offset
 		} else {
@@ -46,7 +46,7 @@ func setSliceInt32(x []int32, rank int, offset int32) {
 }
 
 func setSliceUint64(x []uint64, rank int, offset uint64) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = uint64(rank+1) + offset
 		} else {
@@ -56,7 +56,7 @@ func setSliceUint64(x []uint64, rank int, offset uint64) {
 }
 
 func setSliceInt64(x []int64, rank int, offset int64) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = int64(rank+1) + offset
 		} else {
@@ -66,7 +66,7 @@ func setSliceInt64(x []int64, rank int, offset int64) {
 }
 
 func setSliceFloat32(x []float32, rank int, offset float32) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = float32(rank+1) + offset
 		} else {
@@ -75,7 +75,7 @@ func setSliceFloat32(x []float32, rank int, offset float32) {
 	}
 }
 func setSliceFloat64(x []float64, rank int, offset float64) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = float64(rank+1) + offset
 		} else {
@@ -85,7 +85,7 @@ func setSliceFloat64(x []float64, rank int, offset float64) {
 }
 
 func setSliceComplex128(x []complex128, rank int, offset complex128) {
-	for i := 0; i < len(x); i++ {
+	for i := range x {
 		if i == rank {
 			x[i] = complex(float64(rank+1), float64(rank+1)/10.0) + offset
 		} else {
@@ -215,7 +215,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("uint32", func(t *testing.T) {
 			u32 := make([]uint32, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(u32); i++ {
+				for i := range u32 {
 					u32[i] = uint32(1 + i)
 				}
 			}
@@ -230,7 +230,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("int32", func(t *testing.T) {
 			i32 := make([]int32, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(i32); i++ {
+				for i := range i32 {
 					i32[i] = int32(1 + i)
 				}
 			}
@@ -246,7 +246,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("uint64", func(t *testing.T) {
 			u64 := make([]uint64, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(u64); i++ {
+				for i := range u64 {
 					u64[i] = uint64(1 + i)
 				}
 			}
@@ -261,7 +261,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("int64", func(t *testing.T) {
 			i64 := make([]int64, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(i64); i++ {
+				for i := range i64 {
 					i64[i] = int64(1 + i)
 				}
 			}
@@ -276,7 +276,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("float32", func(t *testing.T) {
 			f32 := make([]float32, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(f32); i++ {
+				for i := range f32 {
 					f32[i] = float32(1 + i)
 				}
 			}
@@ -291,7 +291,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("float64", func(t *testing.T) {
 			f64 := make([]float64, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(f64); i++ {
+				for i := range f64 {
 					f64[i] = float64(1 + i)
 				}
 			}
@@ -306,7 +306,7 @@ func bcast(A *Communicator) func(*testing.T) {
 		t.Run("complex128", func(t *testing.T) {
 			c128 := make([]complex128, 4)
 			if A.Rank() == root {
-				for i := 0; i < len(c128); i++ {
+				for i := range c128 {
 					c128[i] = complex(float64(1+i), float64(i))
 				}
 			}
@@ -1102,7 +1102,7 @@ func TestMPI(t *testing.T) {
 	t.Run("Probe", func(t *testing.T) {
 		if A.Rank() == 3 {
 			vals := []int64{1, 4, 9}
-			for k := 0; k < 3; k++ {
+			for k := range 3 {
 				A.SendInt64s(vals, k, 6)
 			}
 		} else {
@@ -1127,7 +1127,7 @@ func TestMPI(t *testing.T) {
 		}
 		if A.Rank() == 3 {
 			vals := []int64{1, 4, 9}
-			for k := 0; k < 3; k++ {
+			for k := range 3 {
 				A.SendInt64s(vals, k, 6)
 			}
 		} else {
