@@ -5,6 +5,7 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
+	"remoteUser": "vscode",
 	"customizations": {
 		"vscode": {
 			"extensions": [
