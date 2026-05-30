@@ -11,9 +11,7 @@
 // for distributed parallel computation. It supports point-to-point messaging,
 // collective operations (broadcast, reduce, allreduce), and communicator
 // management.
-//
-// TODO: once Go supports generic methods, replace the type-specific Bcast*, Reduce*,
-// Allreduce*, Send*, Recv*, etc. families with generic methods on *Communicator.
+
 package mpi
 
 /*
@@ -31,9 +29,6 @@ import (
 	"unsafe"
 )
 
-// DataType identifies the MPI datatype corresponding to a Go type.
-type DataType uint8
-
 // AnySource and AnyTag are wildcard values for use in receive operations.
 const (
 	AnySource = C.MPI_ANY_SOURCE
@@ -45,40 +40,59 @@ const (
 	CommTypeShared = C.MPI_COMM_TYPE_SHARED
 )
 
-// Op identifies an MPI reduction operation.
-type Op uint8
-
-// Op constants identify the supported MPI reduction operations.
-const (
-	OpSum  Op = iota // MPI_SUM
-	OpMin            // MPI_MIN
-	OpMax            // MPI_MAX
-	OpProd           // MPI_PROD
-	OpLand           // MPI_LAND (logical and)
-	OpLor            // MPI_LOR  (logical or)
-	OpLxor           // MPI_LXOR (logical xor)
-	OpBand           // MPI_BAND (bitwise and)
-	OpBor            // MPI_BOR  (bitwise or)
-	OpBxor           // MPI_BXOR (bitwise xor)
-)
-
-var ops = [...]C.MPI_Op{
-	C.MPI_SUM,
-	C.MPI_MIN,
-	C.MPI_MAX,
-	C.MPI_PROD,
-	C.MPI_LAND,
-	C.MPI_LOR,
-	C.MPI_LXOR,
-	C.MPI_BAND,
-	C.MPI_BOR,
-	C.MPI_BXOR,
-}
-
 // Status holds the result of a completed MPI operation, including the source,
 // tag, error code, and element count of the received message.
 type Status struct {
 	mpiStatus C.MPI_Status
+}
+
+// MatchedMessage is an atomically claimed message handle returned by Mprobe.
+// It carries the probe status and must be consumed by RecvPrealloc or Recv.
+type MatchedMessage struct {
+	msg    C.MPI_Message
+	status Status
+}
+
+// GetSource returns the rank of the process that sent this message.
+func (m *MatchedMessage) GetSource() int { return m.status.GetSource() }
+
+// GetTag returns the tag of this message.
+func (m *MatchedMessage) GetTag() int { return m.status.GetTag() }
+
+// GetError returns the error code from the probe that claimed this message.
+func (m *MatchedMessage) GetError() int { return m.status.GetError() }
+
+// GetCount returns the number of elements of type T in this message.
+func (m *MatchedMessage) GetCount[T goTypes]() int { return m.status.GetCount[T]() }
+
+// RecvPrealloc receives the claimed message into the pre-allocated slice buf.
+// This is a pointer receiver because MPI_Mrecv modifies the message handle.
+func (m *MatchedMessage) RecvPrealloc[T goTypes](buf []T) Status {
+	var s Status
+	C.MPI_Mrecv(unsafe.Pointer(unsafe.SliceData(buf)), C.int(len(buf)), dataTypeOf[T](), &m.msg, &s.mpiStatus)
+	return s
+}
+
+// Recv allocates and returns a slice containing the claimed message.
+// This is a pointer receiver because MPI_Mrecv modifies the message handle.
+func (m *MatchedMessage) Recv[T goTypes]() ([]T, Status) {
+	buf := make([]T, m.GetCount[T]())
+	return buf, m.RecvPrealloc(buf)
+}
+
+// Mprobe blocks until a message matching source and tag is available, claims
+// it atomically, and returns a *MatchedMessage. This is the thread-safe
+// alternative to Probe.
+func (o *Communicator) Mprobe(source int, tag int) *MatchedMessage {
+	m := &MatchedMessage{}
+	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &m.msg, &m.status.mpiStatus)
+	return m
+}
+
+// Mrecv atomically claims and receives a message from fromID with the given tag.
+// It is equivalent to calling Mprobe followed by Recv on the returned MatchedMessage.
+func (o *Communicator) Mrecv[T goTypes](fromID int, tag int) ([]T, Status) {
+	return o.Mprobe(fromID, tag).Recv[T]()
 }
 
 // GetAttr retrieves a communicator attribute by key. It returns the attribute
@@ -114,18 +128,7 @@ func (o *Communicator) Probe(source int, tag int) Status {
 	return s
 }
 
-// Mprobe blocks until a message matching source and tag is available, claims
-// it atomically, and returns its status and a message handle. The claimed
-// message must be received with MrecvPreallocBytes or MrecvBytes. This is the
-// thread-safe alternative to Probe.
-func (o *Communicator) Mprobe(source int, tag int) (Status, C.MPI_Message) {
-	var s Status
-	var msg C.MPI_Message
-	C.MPI_Mprobe(C.int(source), C.int(tag), o.comm, &msg, &(s.mpiStatus))
-	return s, msg
-}
-
-// GetCount returns the number of elements of type t in the received message
+// GetCount returns the number of elements of type T in the received message
 // described by this Status.
 func (s Status) GetCount[T goTypes]() int {
 	var n C.int
@@ -236,7 +239,7 @@ func (m *MPI) NewCommunicator(ranks []int) *Communicator {
 		return &o
 	}
 	rs := make([]int32, len(ranks))
-	for i := 0; i < len(ranks); i++ {
+	for i := range ranks {
 		rs[i] = int32(ranks[i])
 	}
 	n := C.int(len(ranks))
@@ -286,21 +289,23 @@ func (o *Communicator) Bcast[T goTypes](x []T, root int) {
 // into dest on the root process. dest and orig must be different slices.
 // Returns an error if op is not valid for the data type.
 func (o *Communicator) Reduce[T goTypes](dest, orig []T, op Op, root int) error {
-	if !isValidDataTypeForOp[T](op) {
+	c_datatype, valid_for_op := getDataTypeAndValidate[T](op)
+	if !valid_for_op {
 		return fmt.Errorf("DataType %T cannot be used with Operation %v", *new(T), op)
 	}
-	C.MPI_Reduce(unsafe.Pointer(unsafe.SliceData(orig)), unsafe.Pointer(unsafe.SliceData(dest)), C.int(len(dest)), dataTypeOf[T](), ops[op], C.int(root), o.comm)
+	C.MPI_Reduce(unsafe.Pointer(unsafe.SliceData(orig)), unsafe.Pointer(unsafe.SliceData(dest)), C.int(len(dest)), c_datatype, ops[op], C.int(root), o.comm)
 	return nil
 }
 
-// AllreduceBytes applies op to orig across all processes and writes the result
+// Allreduce applies op to orig across all processes and writes the result
 // into dest on every process. dest and orig must be different slices.
-// Returns an error if op is not valid for bytes.
-func (o *Communicator) Allreduce[T goTypes](dest, orig []T, op Op, root int) error {
-	if !isValidDataTypeForOp[T](op) {
+// Returns an error if op is not valid for the data type.
+func (o *Communicator) Allreduce[T goTypes](dest, orig []T, op Op) error {
+	c_datatype, valid_for_op := getDataTypeAndValidate[T](op)
+	if !valid_for_op {
 		return fmt.Errorf("DataType %T cannot be used with Operation %v", *new(T), op)
 	}
-	C.MPI_Allreduce(unsafe.Pointer(unsafe.SliceData(orig)), unsafe.Pointer(unsafe.SliceData(dest)), C.int(len(dest)), dataTypeOf[T](), ops[op], o.comm)
+	C.MPI_Allreduce(unsafe.Pointer(unsafe.SliceData(orig)), unsafe.Pointer(unsafe.SliceData(dest)), C.int(len(dest)), c_datatype, ops[op], o.comm)
 	return nil
 }
 
@@ -317,37 +322,16 @@ func (o *Communicator) RecvPrealloc[T goTypes](vals []T, fromID int, tag int) St
 	return status
 }
 
-// MrecvPreallocBytes receives into the preallocated slice vals using the
-// matched message handle msg obtained from Mprobe.
-func (o *Communicator) MrecvPrealloc[T goTypes](vals []T, msg C.MPI_Message) Status {
-	status := Status{}
-	C.MPI_Mrecv(unsafe.Pointer(unsafe.SliceData(vals)), C.int(len(vals)), dataTypeOf[T](), &msg, &(status.mpiStatus))
-	return status
-}
-
-// MrecvBytes receives a byte slice via a matched receive from processor fromID
-// with the given tag. It calls Mprobe to atomically claim the message before
-// receiving, making it safe for use in multi-threaded programs.
-func (o *Communicator) Mrecv[T goTypes](fromID int, tag int) ([]T, Status) {
-	pstatus, msg := o.Mprobe(fromID, tag)
-	l := pstatus.GetCount[T]()
-	buf := make([]T, l)
-	status := o.MrecvPrealloc[T](buf, msg)
-	return buf, status
-}
-
 // Recv allocates and returns a slice received from processor fromID
 // with the given tag.
 func (o *Communicator) Recv[T goTypes](fromID int, tag int) ([]T, Status) {
 	l := o.Probe(fromID, tag).GetCount[T]()
 	buf := make([]T, l)
-	status := o.RecvPrealloc[T](buf, fromID, tag)
+	status := o.RecvPrealloc(buf, fromID, tag)
 	return buf, status
 }
 
-// ////////////////////////////////////////////////////////////////////////////
-
-// SendByte sends a single value to processor toID with the given tag.
+// SendOne sends a single value to processor toID with the given tag.
 func (o *Communicator) SendOne[T goTypes](v T, toID int, tag int) {
 	C.MPI_Send(unsafe.Pointer(&v), 1, dataTypeOf[T](), C.int(toID), C.int(tag), o.comm)
 }
@@ -359,22 +343,6 @@ func (o *Communicator) RecvOne[T goTypes](fromID, tag int) (T, Status) {
 	C.MPI_Recv(unsafe.Pointer(&v), 1, dataTypeOf[T](), C.int(fromID), C.int(tag), o.comm, &(status.mpiStatus))
 	return v, status
 }
-
-// // SendString sends s to processor toID with the given tag. The string's backing
-// // array is aliased directly to avoid a copy; this is safe because MPI_Send is a
-// // blocking call that does not retain the pointer beyond its return.
-// func (o *Communicator) SendString(s string, toID, tag int) {
-// 	buf := unsafe.Slice(unsafe.StringData(s), len(s))
-// 	o.SendBytes(buf, toID, tag)
-// }
-
-// // RecvString receives a string from processor fromID with the given tag. The
-// // returned string aliases the receive buffer directly to avoid a copy; see
-// // RecvBytes for constraints on the underlying memory.
-// func (o *Communicator) RecvString(fromID, tag int) (string, Status) {
-// 	recv_bytes, status := o.RecvBytes(fromID, tag)
-// 	return unsafe.String(unsafe.SliceData(recv_bytes), len(recv_bytes)), status
-// }
 
 // Iprobe reports whether a message from source with the given tag is available
 // without blocking. It returns true and the message Status if a message is
