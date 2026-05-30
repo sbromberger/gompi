@@ -1,3 +1,3 @@
-module github.com/sbromberger/gompi/v2
+module github.com/sbromberger/gompi
 
 go 1.27

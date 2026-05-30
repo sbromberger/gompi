@@ -53,17 +53,17 @@ type MatchedMessage struct {
 	status Status
 }
 
-// GetSource returns the rank of the process that sent this message.
-func (m *MatchedMessage) GetSource() int { return m.status.GetSource() }
+// Source returns the rank of the process that sent this message.
+func (m *MatchedMessage) Source() int { return m.status.Source() }
 
-// GetTag returns the tag of this message.
-func (m *MatchedMessage) GetTag() int { return m.status.GetTag() }
+// Tag returns the tag of this message.
+func (m *MatchedMessage) Tag() int { return m.status.Tag() }
 
-// GetError returns the error code from the probe that claimed this message.
-func (m *MatchedMessage) GetError() int { return m.status.GetError() }
+// Error returns the error code from the probe that claimed this message.
+func (m *MatchedMessage) Error() int { return m.status.Error() }
 
-// GetCount returns the number of elements of type T in this message.
-func (m *MatchedMessage) GetCount[T goTypes]() int { return m.status.GetCount[T]() }
+// Count returns the number of elements of type T in this message.
+func (m *MatchedMessage) Count[T goTypes]() int { return m.status.Count[T]() }
 
 // RecvPrealloc receives the claimed message into the pre-allocated slice buf.
 // This is a pointer receiver because MPI_Mrecv modifies the message handle.
@@ -76,7 +76,7 @@ func (m *MatchedMessage) RecvPrealloc[T goTypes](buf []T) Status {
 // Recv allocates and returns a slice containing the claimed message.
 // This is a pointer receiver because MPI_Mrecv modifies the message handle.
 func (m *MatchedMessage) Recv[T goTypes]() ([]T, Status) {
-	buf := make([]T, m.GetCount[T]())
+	buf := make([]T, m.Count[T]())
 	return buf, m.RecvPrealloc(buf)
 }
 
@@ -95,9 +95,9 @@ func (o *Communicator) Mrecv[T goTypes](fromID int, tag int) ([]T, Status) {
 	return o.Mprobe(fromID, tag).Recv[T]()
 }
 
-// GetAttr retrieves a communicator attribute by key. It returns the attribute
+// Attr retrieves a communicator attribute by key. It returns the attribute
 // value, a boolean indicating whether the attribute was set, and any error.
-func (o *Communicator) GetAttr(attribute int) (int, bool, error) {
+func (o *Communicator) Attr(attribute int) (int, bool, error) {
 	var n int
 	var found C.int
 
@@ -108,9 +108,9 @@ func (o *Communicator) GetAttr(attribute int) (int, bool, error) {
 	return int(n), int(found) == 1, nil
 }
 
-// GetMaxTag returns the maximum tag value supported by this communicator.
-func (o *Communicator) GetMaxTag() (int, error) {
-	x, found, err := o.GetAttr(C.MPI_TAG_UB)
+// MaxTag returns the maximum tag value supported by this communicator.
+func (o *Communicator) MaxTag() (int, error) {
+	x, found, err := o.Attr(C.MPI_TAG_UB)
 	if !found {
 		return -1, fmt.Errorf("no max tag value found")
 	}
@@ -128,32 +128,32 @@ func (o *Communicator) Probe(source int, tag int) Status {
 	return s
 }
 
-// GetCount returns the number of elements of type T in the received message
+// Count returns the number of elements of type T in the received message
 // described by this Status.
-func (s Status) GetCount[T goTypes]() int {
+func (s Status) Count[T goTypes]() int {
 	var n C.int
 	C.MPI_Get_count(&s.mpiStatus, dataTypeOf[T](), &n)
 	return int(n)
 }
 
-// GetError returns the error code associated with this Status.
-func (s Status) GetError() int {
+// Error returns the error code associated with this Status.
+func (s Status) Error() int {
 	return int(s.mpiStatus.MPI_ERROR)
 }
 
-// GetSource returns the rank of the processor that sent the message described
+// Source returns the rank of the processor that sent the message described
 // by this Status.
-func (s Status) GetSource() int {
+func (s Status) Source() int {
 	return int(s.mpiStatus.MPI_SOURCE)
 }
 
-// GetTag returns the tag of the message described by this Status.
-func (s Status) GetTag() int {
+// Tag returns the tag of the message described by this Status.
+func (s Status) Tag() int {
 	return int(s.mpiStatus.MPI_TAG)
 }
 
-// IsOn reports whether MPI has been initialised and not yet finalised.
-func IsOn() bool {
+// IsInitialized reports whether MPI has been initialised and not yet finalised.
+func IsInitialized() bool {
 	var init, fin C.int
 	C.MPI_Initialized(&init)
 	C.MPI_Finalized(&fin)
@@ -169,7 +169,7 @@ type MPI struct{}
 // MPI is already initialised. MPI's default error handler
 // (MPI_ERRORS_ARE_FATAL) will abort the process on any subsequent MPI failure.
 func Start() (*MPI, error) {
-	if IsOn() {
+	if IsInitialized() {
 		return nil, fmt.Errorf("MPI is already initialized")
 	}
 	C.MPI_Init(nil, nil)
@@ -180,7 +180,7 @@ func Start() (*MPI, error) {
 // and returns a session token. It returns an error if MPI is already
 // initialised or if the requested threading level is not available.
 func StartThreaded() (*MPI, error) {
-	if IsOn() {
+	if IsInitialized() {
 		return nil, fmt.Errorf("MPI is already initialized")
 	}
 	var x C.int
@@ -221,7 +221,7 @@ func (m *MPI) WorldTime() float64 {
 type Communicator struct {
 	comm   C.MPI_Comm
 	group  C.MPI_Group
-	MaxTag int
+	maxTag int
 }
 
 // NewCommunicator creates a communicator containing the processes identified
@@ -231,11 +231,11 @@ func (m *MPI) NewCommunicator(ranks []int) *Communicator {
 	if len(ranks) == 0 {
 		o.comm = C.World
 		C.MPI_Comm_group(C.World, &o.group)
-		maxtag, err := o.GetMaxTag()
+		maxtag, err := o.MaxTag()
 		if err != nil {
 			panic(err)
 		}
-		o.MaxTag = maxtag
+		o.maxTag = maxtag
 		return &o
 	}
 	rs := make([]int32, len(ranks))
@@ -325,7 +325,7 @@ func (o *Communicator) RecvPrealloc[T goTypes](vals []T, fromID int, tag int) St
 // Recv allocates and returns a slice received from processor fromID
 // with the given tag.
 func (o *Communicator) Recv[T goTypes](fromID int, tag int) ([]T, Status) {
-	l := o.Probe(fromID, tag).GetCount[T]()
+	l := o.Probe(fromID, tag).Count[T]()
 	buf := make([]T, l)
 	status := o.RecvPrealloc(buf, fromID, tag)
 	return buf, status

@@ -66,7 +66,7 @@ func slicesEqual[T goTypes](a, b []T) bool {
 }
 
 func chkStatus(s Status, source, tag int) bool {
-	return s.GetSource() == source && s.GetTag() == tag
+	return s.Source() == source && s.Tag() == tag
 }
 
 // testBcast verifies Bcast distributes {1,2,3,4} from root to all ranks.
@@ -387,7 +387,7 @@ func TestMPI(t *testing.T) {
 		} else {
 			y, s := A.Recv[float64](0, 1)
 			if !chkStatus(s, 0, 1) {
-				t.Errorf("unexpected status: source %d tag %d", s.GetSource(), s.GetTag())
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
 			}
 			if !slicesEqual(y, []float64{123, 123, 123, 123}) {
 				t.Errorf("got %v, want %v", y, []float64{123, 123, 123, 123})
@@ -408,7 +408,7 @@ func TestMPI(t *testing.T) {
 				t.Errorf("got %v, want %v", y, []int64{123, 123, 123, 123})
 			}
 			if !chkStatus(s, 0, 2) {
-				t.Errorf("unexpected status: source %d tag %d", s.GetSource(), s.GetTag())
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
 			}
 		}
 	})
@@ -426,7 +426,7 @@ func TestMPI(t *testing.T) {
 				t.Errorf("got %d, want %d", res, exp)
 			}
 			if !chkStatus(s, 0, 3) {
-				t.Errorf("unexpected status: source %d tag %d", s.GetSource(), s.GetTag())
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
 			}
 		}
 	})
@@ -445,7 +445,7 @@ func TestMPI(t *testing.T) {
 				t.Errorf("got %s, want %s", res, exp)
 			}
 			if !chkStatus(s, 0, 4) {
-				t.Errorf("unexpected status: source %d tag %d", s.GetSource(), s.GetTag())
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
 			}
 		}
 	})
@@ -459,11 +459,11 @@ func TestMPI(t *testing.T) {
 			}
 		} else {
 			s := A.Probe(3, 6)
-			if src := s.GetSource(); src != 3 {
-				t.Errorf("GetSource: got %d, want 3", src)
+			if src := s.Source(); src != 3 {
+				t.Errorf("Source: got %d, want 3", src)
 			}
-			if n := s.GetCount[int64](); n != 3 {
-				t.Errorf("GetCount: got %d, want 3", n)
+			if n := s.Count[int64](); n != 3 {
+				t.Errorf("Count: got %d, want 3", n)
 			}
 		}
 	})
@@ -493,11 +493,11 @@ func TestMPI(t *testing.T) {
 			if !b {
 				t.Errorf("Iprobe(3, 6): got false, want true")
 			}
-			if src := s.GetSource(); src != 3 {
-				t.Errorf("GetSource: got %d, want 3", src)
+			if src := s.Source(); src != 3 {
+				t.Errorf("Source: got %d, want 3", src)
 			}
-			if n := s.GetCount[int64](); n != 3 {
-				t.Errorf("GetCount: got %d, want 3", n)
+			if n := s.Count[int64](); n != 3 {
+				t.Errorf("Count: got %d, want 3", n)
 			}
 		}
 	})
@@ -538,7 +538,7 @@ func TestMPI(t *testing.T) {
 				t.Errorf("got %v, want %v", y, []float64{1, 2, 3, 4})
 			}
 			if !chkStatus(s, 0, 7) {
-				t.Errorf("unexpected status: source %d tag %d", s.GetSource(), s.GetTag())
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
 			}
 		}
 	})

@@ -5,7 +5,7 @@ import (
 	"log"
 	"strings"
 
-	mpi "github.com/sbromberger/gompi/v2"
+	mpi "github.com/sbromberger/gompi"
 )
 
 const (
