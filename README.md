@@ -7,7 +7,6 @@ The `gompi` package is a lightweight wrapper to the [OpenMPI](https://www.open-m
 GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with additional methods.
 
 ## Dependencies
-
 **This package will not work on Windows systems.**
 
 GoMPI requires the [OpenMPI](https://www.open-mpi.org) libraries, header files, and binaries to be installed on your system.
