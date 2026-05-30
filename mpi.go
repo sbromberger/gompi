@@ -296,7 +296,7 @@ func (o *Communicator) Reduce[T goTypes](dest, orig []T, op Op, root int) error 
 // AllreduceBytes applies op to orig across all processes and writes the result
 // into dest on every process. dest and orig must be different slices.
 // Returns an error if op is not valid for bytes.
-func (o *Communicator) Allreduce[T goTypes](dest, orig []byte, op Op, root int) error {
+func (o *Communicator) Allreduce[T goTypes](dest, orig []T, op Op, root int) error {
 	if !isValidDataTypeForOp[T](op) {
 		return fmt.Errorf("DataType %T cannot be used with Operation %v", *new(T), op)
 	}
