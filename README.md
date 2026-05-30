@@ -6,6 +6,49 @@ The `gompi` package is a lightweight wrapper to the [OpenMPI](https://www.open-m
 
 GoMPI is a fork of the [gosl](https://github.com/cpmech/gosl) MPI library with additional methods.
 
+## Usage
+
+```go
+package main
+
+import (
+	"fmt"
+	"log"
+
+	mpi "github.com/sbromberger/gompi"
+)
+
+func main() {
+	m, err := mpi.Start()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer m.Stop()
+
+	rank := m.WorldRank()
+	size := m.WorldSize()
+
+	comm := m.NewCommunicator(nil)
+
+	if rank == 0 {
+		// Rank 0 sends a slice of float64 to rank 1.
+		vals := []float64{1.0, 2.0, 3.0}
+		comm.Send(vals, 1, 0)
+		fmt.Printf("rank 0 of %d: sent %v\n", size, vals)
+	} else if rank == 1 {
+		// Rank 1 receives from rank 0.
+		vals, _ := comm.Recv[float64](0, 0)
+		fmt.Printf("rank 1 of %d: received %v\n", size, vals)
+	}
+}
+```
+
+Run with:
+
+```
+mpirun -n 2 go run main.go
+```
+
 ## Dependencies
 **This package will not work on Windows systems.**
 
