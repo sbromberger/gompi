@@ -22,8 +22,10 @@ mpirun -n 4 --oversubscribe go test .
 ## Performance
 Note: latency benchmarks updated May 2026.
 
-OSU MPI Latency Test (v7.5.1) bechmarks run using `mpirun -n 2 ./osu_latency -i 1000 -x 200` with datatype = `MPI_Char`.
+OSU MPI Latency Test (v7.5.1) benchmarks run using `mpirun -n 2 ./osu_latency -i 1000 -x 200` with datatype = `MPI_Char`.
 GoMPI benchmarks run using `mpirun -n 2 go run latency.go`.
+
+Benchmarks were run on a single node. Small-message overhead reflects CGo call latency and converges to parity as message size increases.
 
 | message size (bytes) | GoMPI (µs) | OSU MPI (µs) | difference |
 |---|---|---|---|
