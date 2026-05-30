@@ -1,4 +1,4 @@
-Copyright (c) 2021, Seth Bromberger All rights reserved.
+Copyright (c) 2026, Seth Bromberger All rights reserved.
 
 Please note the following limitation with respect to redistribution:
 
@@ -13,3 +13,8 @@ Redistribution and use in source and binary forms without modification, and use 
 1. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
 
 THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+## Note on the No-Modification Redistribution Clause
+The prohibition on redistribution of modified source code is intentional and specific. It is not intended to prevent private modification or internal use: you are free to modify this software for your own purposes. Rather, it is intended to prevent automated or pipeline-driven modification of this source code prior to or during redistribution, such as the insertion of telemetry, tracking, or analytics code by a package registry, build system, or other distribution intermediary, as well as the distribution of modified copies containing malicious code. Any copy of this software that is redistributed must be identical to what was published by the copyright holder.
+
