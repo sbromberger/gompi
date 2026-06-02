@@ -542,4 +542,32 @@ func TestMPI(t *testing.T) {
 			}
 		}
 	})
+	A.Barrier()
+
+	t.Run("Mprobe/MatchedMessage.Recv", func(t *testing.T) {
+		if A.Rank() == 0 {
+			s := []float64{5, 6, 7, 8}
+			for k := 1; k <= 3; k++ {
+				A.Send(s, k, 8)
+			}
+		} else {
+			mm := A.Mprobe(0, 8)
+			if mm.Source() != 0 {
+				t.Errorf("got source %d, want 0", mm.Source())
+			}
+			if mm.Tag() != 8 {
+				t.Errorf("got tag %d, want 8", mm.Tag())
+			}
+			if mm.Count[float64]() != 4 {
+				t.Errorf("got count %d, want 4", mm.Count[float64]())
+			}
+			y, s := mm.Recv[float64]()
+			if !slicesEqual(y, []float64{5, 6, 7, 8}) {
+				t.Errorf("got %v, want %v", y, []float64{5, 6, 7, 8})
+			}
+			if !chkStatus(s, 0, 8) {
+				t.Errorf("unexpected status: source %d tag %d", s.Source(), s.Tag())
+			}
+		}
+	})
 }
